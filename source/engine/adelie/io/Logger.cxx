@@ -41,10 +41,6 @@ auto Logger::printWithPrefix(const LoggingLevel& level, const std::string_view& 
 auto Logger::getLoggingString(const std::array<char, MAX_LOGGING_TIME_LINE_SIZE>& timeAsString, const LoggingLevel& level, const std::string_view& message) noexcept -> std::string {
     std::string messageString;
 
-    if (LoggingLevel::LevelNothing == level) {
-        return message.data();  // NOLINT(fuchsia-default-arguments-calls)
-    }
-
     messageString.append("[");
     messageString.append(timeAsString.data());
     messageString.append("]");
@@ -69,9 +65,6 @@ auto Logger::getLoggingString(const std::array<char, MAX_LOGGING_TIME_LINE_SIZE>
         case LoggingLevel::LevelFatal:
             messageString.append("FATAL");
             break;
-        case LoggingLevel::LevelNothing:
-            messageString.append("?????");
-            break;
     }
 
     messageString.append("] ");
@@ -87,8 +80,6 @@ auto Logger::getColorControlSequence(const LoggingLevel& level) const noexcept -
 
     std::stringstream controlSequence;
     switch (level) {
-        case LoggingLevel::LevelNothing:
-            break;
         case LoggingLevel::LevelTrace:
             controlSequence << "\033[" << static_cast<unsigned short int>(ForegroundColor::ForegroundBlue) << "m";
             break;

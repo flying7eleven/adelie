@@ -21,7 +21,7 @@ namespace adelie::io {
     constexpr auto MAX_LOGGING_LINE_SIZE = 4096;
     constexpr auto MAX_LOGGING_TIME_LINE_SIZE = 32;
 
-    enum class LoggingLevel : unsigned char { LevelNothing, LevelTrace, LevelDebug, LevelInformation, LevelWarning, LevelError, LevelFatal }; /* enum class LoggingLevel */
+    enum class LoggingLevel : unsigned char { LevelTrace, LevelDebug, LevelInformation, LevelWarning, LevelError, LevelFatal }; /* enum class LoggingLevel */
 
     enum class ForegroundColor : unsigned char {
         ForegroundBlack [[maybe_unused]] = 30,
