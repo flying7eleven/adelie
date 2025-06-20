@@ -1,7 +1,5 @@
 // Copyright (c) 2025 by Tim Janke. All rights reserved.
 
-#include <vulkan/vk_enum_string_helper.h>
-
 #include <adelie/core/renderer/WindowFactory.hxx>
 #include <adelie/exception/RuntimeException.hxx>
 #include <adelie/exception/VulkanRuntimeException.hxx>
@@ -76,8 +74,8 @@ void VulkanRenderer::createSurface(const std::unique_ptr<core::renderer::WindowI
     VkMacOSSurfaceCreateInfoMVK createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
     createInfo.pView = windowInterface->getNativeWindowHandle();
-    if (vkCreateMacOSSurfaceMVK(mInstance, &createInfo, nullptr, &mSurface) != VK_SUCCESS) {
-        throw VulkanRuntimeException("Failed to create macOS window surface!");
+    if (const auto createSurfaceResult = vkCreateMacOSSurfaceMVK(mInstance, &createInfo, nullptr, &mSurface); createSurfaceResult != VK_SUCCESS) {
+        throw VulkanRuntimeException("Failed to create macOS MoltenVK window surface", createSurfaceResult);
     }
 #elif defined(ADELIE_PLATFORM_WINDOWS)
     VkWin32SurfaceCreateInfoKHR createInfo{};
@@ -104,8 +102,7 @@ void VulkanRenderer::createSurface(const std::unique_ptr<core::renderer::WindowI
             createInfo.display = static_cast<wl_display*>(windowInterface->getNativeDisplayHandle());
             createInfo.surface = static_cast<wl_surface*>(windowInterface->getNativeWindowHandle());
             if (const auto createSurfaceResult = vkCreateWaylandSurfaceKHR(mInstance, &createInfo, nullptr, &mSurface); createSurfaceResult != VK_SUCCESS) {
-                AdelieLogError("Failed to create rendering surface. The error was: %s", string_VkResult(createSurfaceResult));
-                throw VulkanRuntimeException("Failed to create Wayland window surface!");
+                throw VulkanRuntimeException("Failed to create Wayland window surface!", createSurfaceResult);
             }
         } break;
         default:
