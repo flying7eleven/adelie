@@ -1,0 +1,17 @@
+*.dump
+*.log
+*.spv
+*.suo
+*.swp
+*.tmp
+*.ini
+*.cap
+*.profile
+*~
+*.DS_Store
+compile_commands.json
+/gameroot/
+/.idea/
+/.cache/
+/build/
+/cmake-build-*/

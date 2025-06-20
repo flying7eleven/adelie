@@ -1,0 +1,71 @@
+// Copyright (c) 2025 by Tim Janke. All rights reserved.
+
+#include <sstream>
+#include <adelie/VersionInformation.hxx>
+
+// clang-format off
+// TODO: to be fixed as soon a first version tag is available
+constexpr auto ADELIE_VERSION_MAJOR = 0; // @VERSION_MAJOR@;
+constexpr auto ADELIE_VERSION_MINOR = 0; // @VERSION_MINOR@;
+constexpr auto ADELIE_VERSION_PATCH = 0; // @VERSION_PATCH@;
+constexpr auto ADELIE_VERSION_SHA1 = "@VERSION_SHA1@";
+constexpr auto ADELIE_VERSION_BRANCH = "@VERSION_BRANCH@";
+#cmakedefine VERSION_IS_DIRTY
+// clang-format on
+
+[[maybe_unused]] auto adelie::getVersionString() -> std::string {
+    std::stringstream ss;
+
+    // generate the basic version info
+    ss << "@VERSION_MAJOR@.@VERSION_MINOR@";
+    if (adelie::getVersionPatch() > 0) {
+        ss << ".@VERSION_PATCH@";
+    }
+
+    // if there is and sha1 code (because it is a dev version, add it
+    if (std::string(adelie::getVersionSHA1()).length() > 1) {
+        ss << adelie::getVersionSHA1();
+    }
+
+    //
+    ss << " (" << ADELIE_VERSION_BRANCH << ")";
+
+    // if we have a build with local changes, state that clearly
+    if (adelie::isDirty()) {
+        ss << " (local changes)";
+    }
+
+    return ss.str();
+}
+
+[[maybe_unused]] auto adelie::getVersionMajor() -> unsigned short int {
+    return ADELIE_VERSION_MAJOR;
+}
+
+[[maybe_unused]] auto adelie::getVersionMinor() -> unsigned short int {
+    return ADELIE_VERSION_MINOR;
+}
+
+[[maybe_unused]] auto adelie::getVersionPatch() -> unsigned short int {
+    return ADELIE_VERSION_PATCH;
+}
+
+[[maybe_unused]] auto adelie::isDirty() -> bool {
+#if defined(VERSION_IS_DIRTY)
+    return true;
+#else
+    return false;
+#endif
+}
+
+[[maybe_unused]] auto adelie::getVersionSHA1() -> std::string {
+    return std::string(ADELIE_VERSION_SHA1);
+}
+
+[[maybe_unused]] auto adelie::getBuildDate() -> std::string {
+    return __DATE__;
+}
+
+[[maybe_unused]] auto adelie::getBuildTime() -> std::string {
+    return __TIME__;
+}

@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+
+import shutil
+import sys
+
+# a list of all file extensions to actually check
+EXTENSIONS_TO_CHECK = [
+    '.c',
+    '.cpp',
+    '.cxx',
+    '.h',
+    '.hpp',
+    '.hxx',
+    '.json',
+    '.cmake',
+]
+
+REQUIRED_TOOLS = ['clang-format', 'grep', 'wc', 'git']
+
+
+def check_tools_installed():
+    """Checks if all required external tools are installed and accessible."""
+    missing_tools = []
+    for tool in REQUIRED_TOOLS:
+        if shutil.which(tool) is None:
+            missing_tools.append(tool)
+
+    if missing_tools:
+        print("Error: The following required tools are not installed or not found in PATH:")
+        for tool in missing_tools:
+            print(f"  - {tool}")
+        print("Please install them and ensure they are accessible in your PATH.")
+        sys.exit(1)
+
+
+def get_change_count(file):
+    from subprocess import run, PIPE
+
+    # get a XML change set
+    clang_result = run(['clang-format', '--style=file', '--output-replacements-xml', '--sort-includes', file],
+                       stdout=PIPE)
+    clang_output = clang_result.stdout
+
+    # find the lines which describe a change
+    grep_result = run(['grep', '-i', '<replacement '], input=clang_output, stdout=PIPE)
+    grep_output = grep_result.stdout
+
+    # count the occurences of the change requiredments
+    wc_result = run(['wc', '-l'], input=grep_output, stdout=PIPE)
+    wc_output = wc_result.stdout
+
+    # return the number of required changes
+    return int(wc_output.decode('utf-8'))
+
+
+def get_status_label(file_changes_count):
+    if file_changes_count > 0:
+        return 'needs formatting'
+    else:
+        return 'ok'
+
+
+def check_file_format(file_list):
+    from sys import exit
+    from os.path import splitext
+
+    # start with zero fails
+    fail_counter = 0
+
+    # loop through all files we want to commit
+    for current_file in file_list:
+        # skip all files wich do not have to correct file extension
+        current_file_name, current_file_extension = splitext(current_file)
+        if current_file_extension not in EXTENSIONS_TO_CHECK:
+            continue
+
+        # check how many changes are required for a file
+        changes_required_count = get_change_count(current_file)
+        if changes_required_count > 0:
+            fail_counter += 1
+
+        # get a label to display
+        status_label = get_status_label(changes_required_count)
+
+        # tell the user the results for the current file
+        print(f"Checking {current_file}... {status_label}")
+
+    # if we have fails, return -1 to abort any try to commit files
+    if fail_counter > 0:
+        exit(-1)
+
+
+def get_changed_files():
+    from subprocess import run, PIPE
+    result = run(['git', 'diff', '--cached', '--name-only', 'HEAD'], stdout=PIPE)
+    return result.stdout.decode('utf-8').split('\n')
+
+
+if __name__ == '__main__':
+    check_tools_installed()  # Check for required tools first
+    files = get_changed_files()
+    check_file_format(files)
