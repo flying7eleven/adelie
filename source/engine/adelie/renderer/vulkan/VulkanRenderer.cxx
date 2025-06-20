@@ -117,7 +117,7 @@ void VulkanRenderer::createSurface(const std::unique_ptr<core::renderer::WindowI
 #endif
 }
 
-auto VulkanRenderer::getSurfaceFormats(VkPhysicalDevice device) -> std::vector<VkSurfaceFormatKHR> {
+auto VulkanRenderer::getSurfaceFormats(VkPhysicalDevice device) const -> std::vector<VkSurfaceFormatKHR> {
     uint32_t formatCount;
     vkGetPhysicalDeviceSurfaceFormatsKHR(device, mSurface, &formatCount, nullptr);
     std::vector<VkSurfaceFormatKHR> formats(formatCount);
@@ -125,7 +125,7 @@ auto VulkanRenderer::getSurfaceFormats(VkPhysicalDevice device) -> std::vector<V
     return formats;
 }
 
-auto VulkanRenderer::getSurfacePresentModes(VkPhysicalDevice device) -> std::vector<VkPresentModeKHR> {
+auto VulkanRenderer::getSurfacePresentModes(VkPhysicalDevice device) const -> std::vector<VkPresentModeKHR> {
     uint32_t presentModeCount;
     vkGetPhysicalDeviceSurfacePresentModesKHR(device, mSurface, &presentModeCount, nullptr);
     std::vector<VkPresentModeKHR> presentModes(presentModeCount);
@@ -133,7 +133,7 @@ auto VulkanRenderer::getSurfacePresentModes(VkPhysicalDevice device) -> std::vec
     return presentModes;
 }
 
-auto VulkanRenderer::isDeviceSurfaceSupported(VkPhysicalDevice device, uint32_t queueFamilyIndex) -> bool {
+auto VulkanRenderer::isDeviceSurfaceSupported(VkPhysicalDevice device, uint32_t queueFamilyIndex) const -> bool {
     VkBool32 presentSupport = VK_FALSE;
     vkGetPhysicalDeviceSurfaceSupportKHR(device, queueFamilyIndex, mSurface, &presentSupport);
     return presentSupport == VK_TRUE;
@@ -147,12 +147,40 @@ auto VulkanRenderer::getQueueFamilies(VkPhysicalDevice device) -> std::vector<Vk
     return queueFamilies;
 }
 
-auto VulkanRenderer::findQueueFamilies(VkPhysicalDevice device) -> uint32_t {
+auto VulkanRenderer::queueFamilyFlagsToString(const VkQueueFlags& flags) -> std::string {
+    static const struct QueueFlagMapping {
+            VkQueueFlags flag;
+            std::string_view name;
+    } mappings[] = {{VK_QUEUE_GRAPHICS_BIT, "Graphics"},
+                    {VK_QUEUE_COMPUTE_BIT, "Compute"},
+                    {VK_QUEUE_TRANSFER_BIT, "Transfer"},
+                    {VK_QUEUE_SPARSE_BINDING_BIT, "Sparse"},
+                    {VK_QUEUE_PROTECTED_BIT, "Protected"},
+                    {VK_QUEUE_VIDEO_DECODE_BIT_KHR, "Video decode"},
+                    {VK_QUEUE_VIDEO_ENCODE_BIT_KHR, "Video encode"},
+                    {VK_QUEUE_OPTICAL_FLOW_BIT_NV, "Optical flow"}};
+
+    std::string result;
+    for (const auto& mapping : mappings) {
+        if (flags & mapping.flag) {
+            if (!result.empty()) {
+                result += ", ";
+            }
+            result += mapping.name;
+        }
+    }
+    return result;
+}
+
+auto VulkanRenderer::findQueueFamilies(VkPhysicalDevice device) const -> uint32_t {
     uint32_t queueFamilyIndex = UINT32_MAX;
     std::vector<VkQueueFamilyProperties> queueFamilies = getQueueFamilies(device);
 
+    AdelieLogDebug("    Found {} queue families for device", queueFamilies.size());
     for (uint32_t i = 0; i < queueFamilies.size(); i++) {
-        if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+        const auto& queueFamily = queueFamilies[i];
+        AdelieLogDebug("      Queue Family {}: Count: {}, Flags: {}", i, queueFamily.queueCount, queueFamilyFlagsToString(queueFamily.queueFlags));
+        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             if (isDeviceSurfaceSupported(device, i)) {
                 queueFamilyIndex = i;
                 break;
@@ -160,10 +188,14 @@ auto VulkanRenderer::findQueueFamilies(VkPhysicalDevice device) -> uint32_t {
         }
     }
 
+    if (UINT32_MAX == queueFamilyIndex) {
+        AdelieLogError("    No graphics queue family of the device was able to present the used surface format");
+    }
+
     return queueFamilyIndex;
 }
 
-auto VulkanRenderer::isDeviceSuitable(VkPhysicalDevice device) -> bool {
+auto VulkanRenderer::isDeviceSuitable(VkPhysicalDevice device) const -> bool {
     uint32_t queueFamilyIndex = findQueueFamilies(device);
     bool extensionsSupported = VulkanExtensionManager::checkDeviceExtensionSupport(device);
 
@@ -191,13 +223,16 @@ auto VulkanRenderer::pickPhysicalDevice() -> void {
     vkEnumeratePhysicalDevices(mInstance, &deviceCount, devices.data());
 
     for (const auto& device : devices) {
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+        AdelieLogDebug("  Checking device: {}", deviceProperties.deviceName);
         if (isDeviceSuitable(device)) {
             mPhysicalDevice = device;
             break;
         }
     }
 
-    if (mPhysicalDevice == VK_NULL_HANDLE) {
-        throw VulkanRuntimeException("Failed to find a suitable GPU!");
+    if (VK_NULL_HANDLE == mPhysicalDevice) {
+        throw VulkanRuntimeException("Could not find any rendering device that supports the required properties");
     }
 }

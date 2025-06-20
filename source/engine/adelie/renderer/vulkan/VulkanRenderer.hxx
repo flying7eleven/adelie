@@ -28,12 +28,14 @@ namespace adelie::renderer::vulkan {
             static auto getQueueFamilies(VkPhysicalDevice device) -> std::vector<VkQueueFamilyProperties>;
 
             auto createSurface(const std::unique_ptr<core::renderer::WindowInterface>& windowInterface) -> void;
-            auto getSurfaceFormats(VkPhysicalDevice device) -> std::vector<VkSurfaceFormatKHR>;
-            auto getSurfacePresentModes(VkPhysicalDevice device) -> std::vector<VkPresentModeKHR>;
-            auto isDeviceSurfaceSupported(VkPhysicalDevice device, uint32_t queueFamilyIndex) -> bool;
-            auto findQueueFamilies(VkPhysicalDevice device) -> uint32_t;
-            auto isDeviceSuitable(VkPhysicalDevice device) -> bool;
+            auto getSurfaceFormats(VkPhysicalDevice device) const -> std::vector<VkSurfaceFormatKHR>;
+            auto getSurfacePresentModes(VkPhysicalDevice device) const -> std::vector<VkPresentModeKHR>;
+            auto isDeviceSurfaceSupported(VkPhysicalDevice device, uint32_t queueFamilyIndex) const -> bool;
+            auto findQueueFamilies(VkPhysicalDevice device) const -> uint32_t;
+            auto isDeviceSuitable(VkPhysicalDevice device) const -> bool;
             auto pickPhysicalDevice() -> void;
+
+            static auto queueFamilyFlagsToString(const VkQueueFlags& flags) -> std::string;
 
             VkInstance mInstance;
             VkSurfaceKHR mSurface;
