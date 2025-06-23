@@ -2,9 +2,11 @@
 
 #include <Adelie.hxx>
 #import <watschel/platform/macos/AppDelegate.hxx>
+#include <boost/core/demangle.hpp>
 
 using adelie::core::renderer::WindowFactory;
 using adelie::core::renderer::WindowType;
+using adelie::exception::RuntimeException;
 using adelie::exception::VulkanRuntimeException;
 
 int main(int /*unused*/, char** /*unused*/) {
@@ -20,10 +22,17 @@ int main(int /*unused*/, char** /*unused*/) {
             auto window = WindowFactory::createWindow();
             window->createWindow(1920, 1080, "Watschel");
         } catch (const VulkanRuntimeException& e) {
-            AdelieLogError("{}: {}", e.getMessage(), e.getVulkanErrorCode());
-            AdelieLogError("Stacktrace:");
+            AdelieLogFatal("Exception ({}) [{}]: {}", boost::core::demangle(typeid(e).name()), e.getVulkanErrorCode(), e.getMessage());
+            AdelieLogFatal("Stacktrace:");
             for (auto entry : e.getStacktrace()) {
-                AdelieLogError("    {}", entry.name());
+                AdelieLogFatal("    {}", entry.name());
+            }
+            return EXIT_FAILURE;
+        } catch (const RuntimeException& e) {
+            AdelieLogFatal("Exception ({}): {}", boost::core::demangle(typeid(e).name()), e.getMessage());
+            AdelieLogFatal("Stacktrace:");
+            for (auto entry : e.getStacktrace()) {
+                AdelieLogFatal("    {}", entry.name());
             }
             return EXIT_FAILURE;
         }

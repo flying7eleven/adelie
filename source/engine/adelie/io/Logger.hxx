@@ -15,6 +15,7 @@
     #define AdelieLogInformation(...) adelie::io::Logger::getInstance()->info(__VA_ARGS__)
     #define AdelieLogWarning(...) adelie::io::Logger::getInstance()->warn(__VA_ARGS__)
     #define AdelieLogError(...) adelie::io::Logger::getInstance()->error(__VA_ARGS__)
+    #define AdelieLogFatal(...) adelie::io::Logger::getInstance()->fatal(__VA_ARGS__)
 
 namespace adelie::io {
 
