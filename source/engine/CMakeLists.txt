@@ -73,7 +73,6 @@ endif ()
 
 #
 add_compile_definitions("ADELIE_BUILD_LIBRARY")
-add_compile_definitions("BOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED")
 
 # configure the static library for the engine
 add_library(adelie_engine SHARED ${ADELIE_SOURCE_CORE} ${ADELIE_SOURCE_CORE_RENDERER} ${ADELIE_SOURCE_CORE_EVENT} ${ADELIE_SOURCE_IO} ${ADELIE_SOURCE_PLATFORM} ${ADELIE_SOURCE_RENDERER_VULKAN} ${ADELIE_SOURCE_EXCEPTION})

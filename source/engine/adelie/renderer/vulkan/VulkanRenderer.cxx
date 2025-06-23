@@ -193,15 +193,15 @@ auto VulkanRenderer::findQueueFamilies(VkPhysicalDevice device) const -> uint32_
 }
 
 auto VulkanRenderer::isDeviceSuitable(VkPhysicalDevice device) const -> bool {
-    uint32_t queueFamilyIndex = findQueueFamilies(device);
-    bool extensionsSupported = VulkanExtensionManager::checkDeviceExtensionSupport(device);
+    const uint32_t queueFamilyIndex = findQueueFamilies(device);
+    const bool extensionsSupported = VulkanExtensionManager::checkDeviceExtensionSupport(device);
 
     bool swapChainAdequate = false;
     if (extensionsSupported) {
         VkSurfaceCapabilitiesKHR capabilities;
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, mSurface, &capabilities);
-        std::vector<VkSurfaceFormatKHR> formats = getSurfaceFormats(device);
-        std::vector<VkPresentModeKHR> presentModes = getSurfacePresentModes(device);
+        const std::vector<VkSurfaceFormatKHR> formats = getSurfaceFormats(device);
+        const std::vector<VkPresentModeKHR> presentModes = getSurfacePresentModes(device);
         swapChainAdequate = !formats.empty() && !presentModes.empty();
     }
 

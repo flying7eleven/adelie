@@ -43,6 +43,7 @@ if (UNIX)
     else ()
         set(CMAKE_FIND_FRAMEWORK FIRST)
         add_compile_definitions("ADELIE_PLATFORM_MACOS")
+        add_compile_definitions("BOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED")
     endif ()
 elseif (WIN32)
     # if the wrong compiler is used, terminate immediately

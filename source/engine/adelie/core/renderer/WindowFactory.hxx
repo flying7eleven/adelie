@@ -22,9 +22,6 @@ namespace adelie::core::renderer {
 
     class WindowFactory {
         public:
-            static ADELIE_API std::unique_ptr<WindowInterface> createWindow(WindowType type);
-
-            // Convenience function that automatically detects and creates the appropriate window type
             static ADELIE_API std::unique_ptr<WindowInterface> createWindow();
 
             static ADELIE_API auto getWindowType() -> WindowType;

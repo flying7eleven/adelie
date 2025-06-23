@@ -7,6 +7,7 @@
 // *only* be included in clients and not the engine itself!
 
     #include <adelie/core/renderer/WindowFactory.hxx>
+    #include <adelie/exception/VulkanRuntimeException.hxx>
     #include <adelie/io/Logger.hxx>
 
 #endif /* if !defined( __ADELIE_HXX__ ) */

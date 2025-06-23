@@ -5,6 +5,7 @@
 
 using adelie::core::renderer::WindowFactory;
 using adelie::core::renderer::WindowType;
+using adelie::exception::VulkanRuntimeException;
 
 int main(int /*unused*/, char** /*unused*/) {
     @autoreleasepool {
@@ -15,8 +16,17 @@ int main(int /*unused*/, char** /*unused*/) {
 
         [application setDelegate:appDelegate];
 
-        auto window = WindowFactory::createWindow();
-        window->createWindow(1920, 1080, "Watschel");
+        try {
+            auto window = WindowFactory::createWindow();
+            window->createWindow(1920, 1080, "Watschel");
+        } catch (const VulkanRuntimeException& e) {
+            AdelieLogError("{}: {}", e.getMessage(), e.getVulkanErrorCode());
+            AdelieLogError("Stacktrace:");
+            for (auto entry : e.getStacktrace()) {
+                AdelieLogError("    {}", entry.name());
+            }
+            return EXIT_FAILURE;
+        }
 
         [application run];
     }
