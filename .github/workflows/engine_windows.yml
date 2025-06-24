@@ -8,7 +8,7 @@ env:
   BUILD_TYPE: Release
 jobs:
   build:
-    runs-on: windows-2019
+    runs-on: windows-2025
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,7 +19,8 @@ jobs:
         id: vcpkg
         continue-on-error: true
         with:
-          pkgs: boost-stacktrace boost-thread yaml-cpp ms-gsl freetype vulkan vulkan-tools vulkan-validationlayers vulkan-utility-libraries
+          # vulkan-validationlayers is currently not building
+          pkgs: boost-stacktrace boost-thread yaml-cpp ms-gsl freetype vulkan vulkan-tools vulkan-utility-libraries
           triplet: x64-windows-release
           token: ${{ github.token }}
       - name: Upload vcpkg logs if install failed
