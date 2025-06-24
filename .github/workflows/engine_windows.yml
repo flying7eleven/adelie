@@ -17,10 +17,20 @@ jobs:
       - name: Install required dependencies...
         uses: johnwason/vcpkg-action@v7
         id: vcpkg
+        continue-on-error: true
         with:
           pkgs: boost-stacktrace boost-thread yaml-cpp ms-gsl freetype vulkan vulkan-tools vulkan-validationlayers vulkan-utility-libraries
           triplet: x64-windows-release
           token: ${{ github.token }}
+      - name: Upload vcpkg logs if install failed
+        if: steps.vcpkg.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vcpkg-logs
+          path: ./vcpkg/buildtrees/**/install-*.log
+      - name: Fail the job if vcpkg install failed
+        if: steps.vcpkg.outcome == 'failure'
+        run: exit 1
       - name: Configure the project using CMake...
         run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-release -DVCPKG_MANIFEST_MODE=OFF
       - name: Building the engine code...
