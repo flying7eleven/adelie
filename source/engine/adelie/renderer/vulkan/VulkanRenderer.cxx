@@ -116,7 +116,7 @@ void VulkanRenderer::createSurface(const std::unique_ptr<core::renderer::WindowI
         } break;
         case WindowType::WAYLAND_API: {
             VkWaylandSurfaceCreateInfoKHR createInfo{};
-            createInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+            createInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
             createInfo.display = static_cast<wl_display*>(windowInterface->getNativeDisplayHandle());
             createInfo.surface = static_cast<wl_surface*>(windowInterface->getNativeWindowHandle());
             if (const auto createSurfaceResult = vkCreateWaylandSurfaceKHR(mInstance, &createInfo, nullptr, &mSurface); createSurfaceResult != VK_SUCCESS) {
