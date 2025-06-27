@@ -4,6 +4,7 @@
 
 #include <xdg-shell-client-protocol.h>
 
+#include <adelie/core/Assert.hxx>
 #include <adelie/exception/RuntimeException.hxx>
 #include <adelie/io/Logger.hxx>
 #include <cstring>
@@ -152,10 +153,12 @@ void WaylandWindow::destroyWindow() {
 }
 
 void* WaylandWindow::getNativeWindowHandle() const {
+    AdelieCoreAssert(surface != nullptr, "no valid surface to return");
     return surface;
 }
 
 void* WaylandWindow::getNativeDisplayHandle() const {
+    AdelieCoreAssert(display != nullptr, "no valid display to return");
     return display;
 }
 

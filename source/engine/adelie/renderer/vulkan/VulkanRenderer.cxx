@@ -1,5 +1,6 @@
 // Copyright (c) 2025 by Tim Janke. All rights reserved.
 
+#include <adelie/core/Assert.hxx>
 #include <adelie/core/renderer/WindowFactory.hxx>
 #include <adelie/exception/RuntimeException.hxx>
 #include <adelie/exception/VulkanRuntimeException.hxx>
@@ -131,6 +132,9 @@ auto VulkanRenderer::getSurfacePresentModes(VkPhysicalDevice device) const -> st
 }
 
 auto VulkanRenderer::isDeviceSurfaceSupported(VkPhysicalDevice device, uint32_t queueFamilyIndex) const -> bool {
+    AdelieAssert(device != VK_NULL_HANDLE, "Device must not be null");
+    AdelieAssert(mSurface != VK_NULL_HANDLE, "Surface must not be null");
+
     VkBool32 presentSupport = VK_FALSE;
     vkGetPhysicalDeviceSurfaceSupportKHR(device, queueFamilyIndex, mSurface, &presentSupport);
     return presentSupport == VK_TRUE;
