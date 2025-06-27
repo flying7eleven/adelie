@@ -101,7 +101,5 @@ std::unique_ptr<WindowInterface> WindowFactory::createWindow() {
             throw RuntimeException("Unsupported window type");
     }
 
-    Renderer::setAPI(Renderer::API::Vulkan);
-    Renderer::initialize(windowInterface);
     return windowInterface;
 }
