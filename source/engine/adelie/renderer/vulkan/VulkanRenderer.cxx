@@ -34,6 +34,18 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
+    uint32_t layerCount;
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+    std::vector<VkLayerProperties> availableLayers(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+    AdelieLogDebug("Found {} supported Vulkan layers:", availableLayers.size());
+    for (const auto& layer : availableLayers) {
+        AdelieLogDebug("  - {} ({})", layer.layerName, layer.description);
+    }
+    const std::vector validationLayers = {"VK_LAYER_KHRONOS_validation"};
+    createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+    createInfo.ppEnabledLayerNames = validationLayers.data();
+
 #ifdef ADELIE_PLATFORM_MACOS
     AdelieLogDebug("Enabling portability enumeration for MoltenVK");
     createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
@@ -42,6 +54,11 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     auto extensions = VulkanExtensionManager::getRequiredInstanceExtensions();
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
+
+    AdelieLogDebug("Requesting the following Vulkan extensions:");
+    for (auto extension : extensions) {
+        AdelieLogDebug("  - {}", extension);
+    }
 
     if (vkCreateInstance(&createInfo, nullptr, &mInstance) != VK_SUCCESS) {
         throw VulkanRuntimeException("Failed to create Vulkan instance!");
