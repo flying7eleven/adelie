@@ -1,8 +1,8 @@
 #import <AppKit/NSApplication.h>
 
 #include <Adelie.hxx>
-#import <watschel/platform/macos/AppDelegate.hxx>
 #include <boost/core/demangle.hpp>
+#import <watschel/platform/macos/AppDelegate.hxx>
 
 using adelie::core::renderer::WindowFactory;
 using adelie::core::renderer::WindowType;

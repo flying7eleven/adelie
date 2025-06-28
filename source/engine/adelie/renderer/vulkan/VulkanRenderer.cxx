@@ -7,6 +7,7 @@
 #include <adelie/io/Logger.hxx>
 #include <adelie/renderer/vulkan/VulkanExtensionManager.hxx>
 #include <adelie/renderer/vulkan/VulkanRenderer.hxx>
+#include <cstring>
 
 using adelie::core::renderer::WindowFactory;
 using adelie::core::renderer::WindowType;
@@ -34,17 +35,38 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
+    const auto validationLayerName = "VK_LAYER_KHRONOS_validation";
+    std::vector<const char*> selectedLayers;
+
     uint32_t layerCount;
-    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+    if (const auto result = vkEnumerateInstanceLayerProperties(&layerCount, nullptr); result != VK_SUCCESS) {
+        AdelieLogError("Failed to enumerate supported Vulkan layer count");
+        throw VulkanRuntimeException("Failed to enumerate supported Vulkan layer count", result);
+    }
+
     std::vector<VkLayerProperties> availableLayers(layerCount);
-    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+    if (const auto result = vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data()); result != VK_SUCCESS) {
+        AdelieLogError("Failed to enumerate supported Vulkan layers");
+        throw VulkanRuntimeException("Failed to enumerate supported Vulkan layers", result);
+    }
     AdelieLogDebug("Found {} supported Vulkan layers:", availableLayers.size());
+
     for (const auto& layer : availableLayers) {
         AdelieLogDebug("  - {} ({})", layer.layerName, layer.description);
+#if defined(ADELIE_BUILD_TYPE_DEBUG)
+        if (std::strncmp(validationLayerName, layer.layerName, strlen(validationLayerName)) == 0) {
+            selectedLayers.push_back(layer.layerName);
+        }
+#endif
     }
-    const std::vector validationLayers = {"VK_LAYER_KHRONOS_validation"};
-    createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-    createInfo.ppEnabledLayerNames = validationLayers.data();
+
+    AdelieLogDebug("Requesting the following Vulkan layers:");
+    for (auto layer : selectedLayers) {
+        AdelieLogDebug("  - {}", layer);
+    }
+
+    createInfo.enabledLayerCount = static_cast<uint32_t>(selectedLayers.size());
+    createInfo.ppEnabledLayerNames = selectedLayers.data();
 
 #ifdef ADELIE_PLATFORM_MACOS
     AdelieLogDebug("Enabling portability enumeration for MoltenVK");
