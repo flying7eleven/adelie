@@ -1,5 +1,7 @@
 // Copyright (c) 2025 by Tim Janke. All rights reserved.
 
+#include <vulkan/vk_enum_string_helper.h>
+
 #include <adelie/core/Assert.hxx>
 #include <adelie/core/renderer/WindowFactory.hxx>
 #include <adelie/exception/RuntimeException.hxx>
@@ -7,6 +9,7 @@
 #include <adelie/io/Logger.hxx>
 #include <adelie/renderer/vulkan/VulkanExtensionManager.hxx>
 #include <adelie/renderer/vulkan/VulkanRenderer.hxx>
+#include <boost/algorithm/string/join.hpp>
 #include <cstring>
 
 using adelie::core::renderer::WindowFactory;
@@ -36,7 +39,7 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     createInfo.pApplicationInfo = &appInfo;
 
     const auto validationLayerName = "VK_LAYER_KHRONOS_validation";
-    std::vector<const char*> selectedLayers;
+    std::vector<std::string> selectedLayers;
 
     uint32_t layerCount;
     if (const auto result = vkEnumerateInstanceLayerProperties(&layerCount, nullptr); result != VK_SUCCESS) {
@@ -49,38 +52,44 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
         AdelieLogError("Failed to enumerate supported Vulkan layers");
         throw VulkanRuntimeException("Failed to enumerate supported Vulkan layers", result);
     }
-    AdelieLogDebug("Found {} supported Vulkan layers:", availableLayers.size());
+    AdelieLogDebug("Found {} supported Vulkan layers", availableLayers.size());
 
-    for (const auto& layer : availableLayers) {
-        AdelieLogDebug("  - {} ({})", layer.layerName, layer.description);
 #if defined(ADELIE_BUILD_TYPE_DEBUG)
+    for (const auto& layer : availableLayers) {
+        AdelieLogDebug("  {} ({})", layer.layerName, layer.description);
+
         if (std::strncmp(validationLayerName, layer.layerName, strlen(validationLayerName)) == 0) {
-            selectedLayers.push_back(layer.layerName);
+            selectedLayers.emplace_back(layer.layerName);
         }
+    }
 #endif
+
+    AdelieLogDebug("Requesting the following Vulkan layer(s): {}", boost::algorithm::join(selectedLayers, ", "));
+
+    std::vector<const char*> layerNamesWithCStrings;
+    layerNamesWithCStrings.reserve(selectedLayers.size());
+    for (const auto& layer : selectedLayers) {
+        layerNamesWithCStrings.push_back(layer.c_str());
     }
 
-    AdelieLogDebug("Requesting the following Vulkan layers:");
-    for (auto layer : selectedLayers) {
-        AdelieLogDebug("  - {}", layer);
-    }
-
-    createInfo.enabledLayerCount = static_cast<uint32_t>(selectedLayers.size());
-    createInfo.ppEnabledLayerNames = selectedLayers.data();
+    createInfo.enabledLayerCount = static_cast<uint32_t>(layerNamesWithCStrings.size());
+    createInfo.ppEnabledLayerNames = layerNamesWithCStrings.data();
 
 #ifdef ADELIE_PLATFORM_MACOS
     AdelieLogDebug("Enabling portability enumeration for MoltenVK");
     createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
 
-    auto extensions = VulkanExtensionManager::getRequiredInstanceExtensions();
+    const auto extensions = VulkanExtensionManager::getRequiredInstanceExtensions();
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
 
-    AdelieLogDebug("Requesting the following Vulkan extensions:");
-    for (auto extension : extensions) {
-        AdelieLogDebug("  - {}", extension);
+    std::vector<std::string> extensionNames;
+    extensionNames.reserve(extensions.size());
+    for (const auto& extension : extensions) {
+        extensionNames.emplace_back(extension);
     }
+    AdelieLogDebug("Requesting the following Vulkan extension(s): {}", boost::algorithm::join(extensionNames, ", "));
 
     if (vkCreateInstance(&createInfo, nullptr, &mInstance) != VK_SUCCESS) {
         throw VulkanRuntimeException("Failed to create Vulkan instance!");
@@ -214,7 +223,7 @@ auto VulkanRenderer::queueFamilyFlagsToString(const VkQueueFlags& flags) -> std:
 
 auto VulkanRenderer::findQueueFamilies(VkPhysicalDevice device) const -> uint32_t {
     uint32_t queueFamilyIndex = UINT32_MAX;
-    std::vector<VkQueueFamilyProperties> queueFamilies = getQueueFamilies(device);
+    const std::vector<VkQueueFamilyProperties> queueFamilies = getQueueFamilies(device);
 
     AdelieLogDebug("    Found {} queue families for device", queueFamilies.size());
     for (uint32_t i = 0; i < queueFamilies.size(); i++) {
@@ -244,7 +253,19 @@ auto VulkanRenderer::isDeviceSuitable(VkPhysicalDevice device) const -> bool {
         VkSurfaceCapabilitiesKHR capabilities;
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, mSurface, &capabilities);
         const std::vector<VkSurfaceFormatKHR> formats = getSurfaceFormats(device);
+#if defined(ADELIE_BUILD_TYPE_DEBUG)
+        AdelieLogDebug("    Supported surface formats");
+        for (const auto& [format, _] : formats) {
+            AdelieLogDebug("      {}", string_VkFormat(format));
+        }
+#endif
         const std::vector<VkPresentModeKHR> presentModes = getSurfacePresentModes(device);
+#if defined(ADELIE_BUILD_TYPE_DEBUG)
+        AdelieLogDebug("    Supported present modes");
+        for (const auto& presentMode : presentModes) {
+            AdelieLogDebug("      {}", string_VkPresentModeKHR(presentMode));
+        }
+#endif
         swapChainAdequate = !formats.empty() && !presentModes.empty();
     }
 
