@@ -38,46 +38,9 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
-#if defined(ADELIE_BUILD_TYPE_DEBUG) && !defined(ADELIE_PLATFORM_MACOS)
-    const std::vector validationLayers = {"VK_LAYER_KHRONOS_validation"};
-#endif
-    std::vector<std::string> selectedLayers;
-
-    uint32_t layerCount;
-    if (const auto result = vkEnumerateInstanceLayerProperties(&layerCount, nullptr); result != VK_SUCCESS) {
-        AdelieLogError("Failed to enumerate supported Vulkan layer count");
-        throw VulkanRuntimeException("Failed to enumerate supported Vulkan layer count", result);
-    }
-
-    std::vector<VkLayerProperties> availableLayers(layerCount);
-    if (const auto result = vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data()); result != VK_SUCCESS) {
-        AdelieLogError("Failed to enumerate supported Vulkan layers");
-        throw VulkanRuntimeException("Failed to enumerate supported Vulkan layers", result);
-    }
-    AdelieLogDebug("Found {} supported Vulkan layers", availableLayers.size());
-
-#if defined(ADELIE_BUILD_TYPE_DEBUG) && !defined(ADELIE_PLATFORM_MACOS)
-    for (const auto& layer : availableLayers) {
-        AdelieLogDebug("  {} ({})", layer.layerName, layer.description);
-
-        if (std::strncmp(validationLayers.at(0), layer.layerName, strlen(validationLayers.at(0))) == 0) {
-            selectedLayers.emplace_back(layer.layerName);
-        }
-    }
-#endif
-
-    if (!selectedLayers.empty()) {
-        AdelieLogDebug("Requesting the following Vulkan layer(s): {}", boost::algorithm::join(selectedLayers, ", "));
-    }
-
-    std::vector<const char*> layerNamesWithCStrings;
-    layerNamesWithCStrings.reserve(selectedLayers.size());
-    for (const auto& layer : selectedLayers) {
-        layerNamesWithCStrings.push_back(layer.c_str());
-    }
-
-    createInfo.enabledLayerCount = static_cast<uint32_t>(layerNamesWithCStrings.size());
-    createInfo.ppEnabledLayerNames = layerNamesWithCStrings.data();
+    auto instanceLayers = determineInstanceLayers();
+    createInfo.enabledLayerCount = static_cast<uint32_t>(instanceLayers.size());
+    createInfo.ppEnabledLayerNames = instanceLayers.data();
 
 #if defined(ADELIE_PLATFORM_MACOS)
     AdelieLogDebug("Enabling portability enumeration for MoltenVK");
@@ -300,4 +263,46 @@ auto VulkanRenderer::pickPhysicalDevice() -> void {
     if (VK_NULL_HANDLE == mPhysicalDevice) {
         throw VulkanRuntimeException("Could not find any rendering device that supports the required properties");
     }
+}
+
+auto VulkanRenderer::determineInstanceLayers() -> std::vector<const char*> {
+#if defined(ADELIE_BUILD_TYPE_DEBUG) && !defined(ADELIE_PLATFORM_MACOS)
+    const std::vector validationLayers = {"VK_LAYER_KHRONOS_validation"};
+#endif
+    std::vector<std::string> selectedLayers;
+
+    uint32_t layerCount;
+    if (const auto result = vkEnumerateInstanceLayerProperties(&layerCount, nullptr); result != VK_SUCCESS) {
+        AdelieLogError("Failed to enumerate supported Vulkan layer count");
+        throw VulkanRuntimeException("Failed to enumerate supported Vulkan layer count", result);
+    }
+
+    std::vector<VkLayerProperties> availableLayers(layerCount);
+    if (const auto result = vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data()); result != VK_SUCCESS) {
+        AdelieLogError("Failed to enumerate supported Vulkan layers");
+        throw VulkanRuntimeException("Failed to enumerate supported Vulkan layers", result);
+    }
+    AdelieLogDebug("Found {} supported Vulkan layers", availableLayers.size());
+
+#if defined(ADELIE_BUILD_TYPE_DEBUG) && !defined(ADELIE_PLATFORM_MACOS)
+    for (const auto& layer : availableLayers) {
+        AdelieLogDebug("  {} ({})", layer.layerName, layer.description);
+
+        if (std::strncmp(validationLayers.at(0), layer.layerName, strlen(validationLayers.at(0))) == 0) {
+            selectedLayers.emplace_back(layer.layerName);
+        }
+    }
+#endif
+
+    if (!selectedLayers.empty()) {
+        AdelieLogDebug("Requesting the following Vulkan layer(s): {}", boost::algorithm::join(selectedLayers, ", "));
+    }
+
+    std::vector<const char*> layerNamesWithCStrings;
+    layerNamesWithCStrings.reserve(selectedLayers.size());
+    for (const auto& layer : selectedLayers) {
+        layerNamesWithCStrings.push_back(layer.c_str());
+    }
+
+    return layerNamesWithCStrings;
 }

@@ -35,6 +35,7 @@ namespace adelie::renderer::vulkan {
             auto isDeviceSuitable(VkPhysicalDevice device) const -> bool;
             auto pickPhysicalDevice() -> void;
 
+            static auto determineInstanceLayers() -> std::vector<const char*>;
             static auto queueFamilyFlagsToString(const VkQueueFlags& flags) -> std::string;
 
             VkInstance mInstance;
