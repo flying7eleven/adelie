@@ -25,6 +25,10 @@ int main(int /*unused*/, char** /*unused*/) {
 
             Renderer::setAPI(Renderer::API::Vulkan);
             Renderer::initialize(window);
+
+            // temporary fix until everthing is implemented. ensure the app gets correctly terminated
+            // after the whole initialiaztion stuff
+            return EXIT_SUCCESS;
         } catch (const VulkanRuntimeException& e) {
             AdelieLogFatal("Exception ({}) [{}]: {}", boost::core::demangle(typeid(e).name()), e.getVulkanErrorCode(), e.getMessage());
             AdelieLogFatal("Stacktrace:");
