@@ -1,7 +1,6 @@
 // Copyright (c) 2025 by Tim Janke. All rights reserved.
 
 #include <Adelie.hxx>
-#include <adelie/core/renderer/Renderer.hxx>
 
 using adelie::core::renderer::Renderer;
 using adelie::core::renderer::WindowFactory;

@@ -38,7 +38,9 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
-    const auto validationLayerName = "VK_LAYER_KHRONOS_validation";
+#if defined(ADELIE_BUILD_TYPE_DEBUG) && !defined(ADELIE_PLATFORM_MACOS)
+    const std::vector validationLayers = {"VK_LAYER_KHRONOS_validation"};
+#endif
     std::vector<std::string> selectedLayers;
 
     uint32_t layerCount;
@@ -54,17 +56,19 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     }
     AdelieLogDebug("Found {} supported Vulkan layers", availableLayers.size());
 
-#if defined(ADELIE_BUILD_TYPE_DEBUG)
+#if defined(ADELIE_BUILD_TYPE_DEBUG) && !defined(ADELIE_PLATFORM_MACOS)
     for (const auto& layer : availableLayers) {
         AdelieLogDebug("  {} ({})", layer.layerName, layer.description);
 
-        if (std::strncmp(validationLayerName, layer.layerName, strlen(validationLayerName)) == 0) {
+        if (std::strncmp(validationLayers.at(0), layer.layerName, strlen(validationLayers.at(0))) == 0) {
             selectedLayers.emplace_back(layer.layerName);
         }
     }
 #endif
 
-    AdelieLogDebug("Requesting the following Vulkan layer(s): {}", boost::algorithm::join(selectedLayers, ", "));
+    if (!selectedLayers.empty()) {
+        AdelieLogDebug("Requesting the following Vulkan layer(s): {}", boost::algorithm::join(selectedLayers, ", "));
+    }
 
     std::vector<const char*> layerNamesWithCStrings;
     layerNamesWithCStrings.reserve(selectedLayers.size());
@@ -75,7 +79,7 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     createInfo.enabledLayerCount = static_cast<uint32_t>(layerNamesWithCStrings.size());
     createInfo.ppEnabledLayerNames = layerNamesWithCStrings.data();
 
-#ifdef ADELIE_PLATFORM_MACOS
+#if defined(ADELIE_PLATFORM_MACOS)
     AdelieLogDebug("Enabling portability enumeration for MoltenVK");
     createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
@@ -91,8 +95,8 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     }
     AdelieLogDebug("Requesting the following Vulkan extension(s): {}", boost::algorithm::join(extensionNames, ", "));
 
-    if (vkCreateInstance(&createInfo, nullptr, &mInstance) != VK_SUCCESS) {
-        throw VulkanRuntimeException("Failed to create Vulkan instance!");
+    if (const auto result = vkCreateInstance(&createInfo, nullptr, &mInstance); result != VK_SUCCESS) {
+        throw VulkanRuntimeException("Failed to create Vulkan instance!", result);
     }
 
     createSurface(windowInterface);

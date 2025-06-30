@@ -6,6 +6,7 @@
 // this is the client header file for the Adélie engine. This should
 // *only* be included in clients and not the engine itself!
 
+    #include <adelie/core/renderer/Renderer.hxx>
     #include <adelie/core/renderer/WindowFactory.hxx>
     #include <adelie/exception/RuntimeException.hxx>
     #include <adelie/exception/VulkanRuntimeException.hxx>
