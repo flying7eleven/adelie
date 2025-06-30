@@ -38,7 +38,14 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
-    auto instanceLayers = determineInstanceLayers();
+    auto selectedInstanceLayers = determineInstanceLayers();
+
+    std::vector<const char*> instanceLayers;
+    instanceLayers.reserve(selectedInstanceLayers.size());
+    for (const auto& layer : selectedInstanceLayers) {
+        instanceLayers.push_back(layer.c_str());
+    }
+
     createInfo.enabledLayerCount = static_cast<uint32_t>(instanceLayers.size());
     createInfo.ppEnabledLayerNames = instanceLayers.data();
 
@@ -265,7 +272,7 @@ auto VulkanRenderer::pickPhysicalDevice() -> void {
     }
 }
 
-auto VulkanRenderer::determineInstanceLayers() -> std::vector<const char*> {
+auto VulkanRenderer::determineInstanceLayers() -> std::vector<std::string> {
 #if defined(ADELIE_BUILD_TYPE_DEBUG) && !defined(ADELIE_PLATFORM_MACOS)
     const std::vector validationLayers = {"VK_LAYER_KHRONOS_validation"};
 #endif
@@ -298,11 +305,5 @@ auto VulkanRenderer::determineInstanceLayers() -> std::vector<const char*> {
         AdelieLogDebug("Requesting the following Vulkan layer(s): {}", boost::algorithm::join(selectedLayers, ", "));
     }
 
-    std::vector<const char*> layerNamesWithCStrings;
-    layerNamesWithCStrings.reserve(selectedLayers.size());
-    for (const auto& layer : selectedLayers) {
-        layerNamesWithCStrings.push_back(layer.c_str());
-    }
-
-    return layerNamesWithCStrings;
+    return selectedLayers;
 }
