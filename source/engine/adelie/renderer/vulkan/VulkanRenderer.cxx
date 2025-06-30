@@ -273,7 +273,7 @@ auto VulkanRenderer::pickPhysicalDevice() -> void {
 }
 
 auto VulkanRenderer::determineInstanceLayers() -> std::vector<std::string> {
-#if defined(ADELIE_BUILD_TYPE_DEBUG) && !defined(ADELIE_PLATFORM_MACOS)
+#if defined(ADELIE_BUILD_TYPE_DEBUG)
     const std::vector validationLayers = {"VK_LAYER_KHRONOS_validation"};
 #endif
     std::vector<std::string> selectedLayers;
@@ -291,7 +291,7 @@ auto VulkanRenderer::determineInstanceLayers() -> std::vector<std::string> {
     }
     AdelieLogDebug("Found {} supported Vulkan layers", availableLayers.size());
 
-#if defined(ADELIE_BUILD_TYPE_DEBUG) && !defined(ADELIE_PLATFORM_MACOS)
+#if defined(ADELIE_BUILD_TYPE_DEBUG)
     for (const auto& layer : availableLayers) {
         AdelieLogDebug("  {} ({})", layer.layerName, layer.description);
 
