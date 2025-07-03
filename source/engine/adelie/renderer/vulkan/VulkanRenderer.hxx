@@ -35,15 +35,23 @@ namespace adelie::renderer::vulkan {
             auto isDeviceSuitable(VkPhysicalDevice device) const -> bool;
             auto pickPhysicalDevice() -> void;
             auto createLogicalDevice() -> void;
+            auto createSwapChain(const std::unique_ptr<core::renderer::WindowInterface>& windowInterface) -> void;
 
             static auto determineInstanceLayers() -> std::vector<std::string>;
             static auto queueFamilyFlagsToString(const VkQueueFlags& flags) -> std::string;
+            static auto chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) -> VkSurfaceFormatKHR;
+            static auto chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes) -> VkPresentModeKHR;
+            static auto chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, const std::unique_ptr<core::renderer::WindowInterface>& windowInterface) -> VkExtent2D;
 
             VkInstance mInstance;
             VkSurfaceKHR mSurface;
             VkPhysicalDevice mPhysicalDevice;
             VkDevice mLogicalDevice;
             VkQueue mSelectedGraphicsQueue;
+            VkSwapchainKHR mSwapChain;
+            std::vector<VkImage> mSwapChainImages;
+            VkFormat mSwapChainImageFormat;
+            VkExtent2D mSwapChainExtent;
 
     }; /* class VulkanRenderer */
 

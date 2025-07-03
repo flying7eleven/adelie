@@ -25,6 +25,10 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     mPhysicalDevice = VK_NULL_HANDLE;
     mLogicalDevice = VK_NULL_HANDLE;
     mSelectedGraphicsQueue = VK_NULL_HANDLE;
+    mSwapChain = VK_NULL_HANDLE;
+    mSwapChainImages.clear();
+    mSwapChainImageFormat = VK_FORMAT_UNDEFINED;
+    mSwapChainExtent = {.width = 0, .height = 0};
 
     AdelieLogDebug("Start initializing VulkanRenderer");
 
@@ -74,10 +78,16 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     createSurface(windowInterface);
     pickPhysicalDevice();
     createLogicalDevice();
+    createSwapChain(windowInterface);
 }
 
 VulkanRenderer::~VulkanRenderer() noexcept {
     AdelieLogDebug("Cleaning up VulkanRenderer");
+
+    if (VK_NULL_HANDLE != mSwapChain) {
+        vkDestroySwapchainKHR(mLogicalDevice, mSwapChain, nullptr);
+        mSwapChain = VK_NULL_HANDLE;
+    }
 
     if (VK_NULL_HANDLE != mSelectedGraphicsQueue) {
         // TODO: ???
@@ -313,6 +323,90 @@ auto VulkanRenderer::createLogicalDevice() -> void {
     }
 
     vkGetDeviceQueue(mLogicalDevice, queueFamilyIndex, 0, &mSelectedGraphicsQueue);
+}
+
+auto VulkanRenderer::createSwapChain(const std::unique_ptr<core::renderer::WindowInterface>& windowInterface) -> void {
+    VkSurfaceCapabilitiesKHR capabilities;
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mPhysicalDevice, mSurface, &capabilities);
+
+    uint32_t formatCount;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mSurface, &formatCount, nullptr);
+    std::vector<VkSurfaceFormatKHR> formats(formatCount);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mSurface, &formatCount, formats.data());
+
+    uint32_t presentModeCount;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(mPhysicalDevice, mSurface, &presentModeCount, nullptr);
+    std::vector<VkPresentModeKHR> presentModes(presentModeCount);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(mPhysicalDevice, mSurface, &presentModeCount, presentModes.data());
+
+    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(formats);
+    VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes);
+    VkExtent2D extent = chooseSwapExtent(capabilities, windowInterface);
+
+    uint32_t imageCount = capabilities.minImageCount + 1;
+    if (capabilities.maxImageCount > 0 && imageCount > capabilities.maxImageCount) {
+        imageCount = capabilities.maxImageCount;
+    }
+
+    VkSwapchainCreateInfoKHR createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.surface = mSurface;
+    createInfo.minImageCount = imageCount;
+    createInfo.imageFormat = surfaceFormat.format;
+    createInfo.imageColorSpace = surfaceFormat.colorSpace;
+    createInfo.imageExtent = extent;
+    createInfo.imageArrayLayers = 1;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    createInfo.preTransform = capabilities.currentTransform;
+    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    createInfo.presentMode = presentMode;
+    createInfo.clipped = VK_TRUE;
+
+    if (const auto createSwapChainResult = vkCreateSwapchainKHR(mLogicalDevice, &createInfo, nullptr, &mSwapChain); createSwapChainResult != VK_SUCCESS) {
+        throw VulkanRuntimeException("Failed to create swap chain", createSwapChainResult);
+    }
+
+    vkGetSwapchainImagesKHR(mLogicalDevice, mSwapChain, &imageCount, nullptr);
+    mSwapChainImages.resize(imageCount);
+    vkGetSwapchainImagesKHR(mLogicalDevice, mSwapChain, &imageCount, mSwapChainImages.data());
+
+    mSwapChainImageFormat = surfaceFormat.format;
+    mSwapChainExtent = extent;
+}
+
+auto VulkanRenderer::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) -> VkSurfaceFormatKHR {
+    for (const auto& format : formats) {
+        if (format.format == VK_FORMAT_B8G8R8A8_SRGB && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+            return format;
+        }
+    }
+    return formats[0];
+}
+
+auto VulkanRenderer::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes) -> VkPresentModeKHR {
+    for (const auto& presentMode : presentModes) {
+        if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+            return presentMode;
+        }
+    }
+    return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+auto VulkanRenderer::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, const std::unique_ptr<core::renderer::WindowInterface>& windowInterface) -> VkExtent2D {
+    if (capabilities.currentExtent.width != UINT32_MAX) {
+        return capabilities.currentExtent;
+    }
+
+    int width, height;
+    windowInterface->getWindowSize(width, height);
+
+    VkExtent2D actualExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+
+    actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
+    actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
+
+    return actualExtent;
 }
 
 auto VulkanRenderer::determineInstanceLayers() -> std::vector<std::string> {
