@@ -23,6 +23,8 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     mInstance = VK_NULL_HANDLE;
     mSurface = VK_NULL_HANDLE;
     mPhysicalDevice = VK_NULL_HANDLE;
+    mLogicalDevice = VK_NULL_HANDLE;
+    mSelectedGraphicsQueue = VK_NULL_HANDLE;
 
     AdelieLogDebug("Start initializing VulkanRenderer");
 
@@ -71,10 +73,21 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
 
     createSurface(windowInterface);
     pickPhysicalDevice();
+    createLogicalDevice();
 }
 
 VulkanRenderer::~VulkanRenderer() noexcept {
     AdelieLogDebug("Cleaning up VulkanRenderer");
+
+    if (VK_NULL_HANDLE != mSelectedGraphicsQueue) {
+        // TODO: ???
+        mSelectedGraphicsQueue = VK_NULL_HANDLE;
+    }
+
+    if (VK_NULL_HANDLE != mLogicalDevice) {
+        vkDestroyDevice(mLogicalDevice, nullptr);
+        mLogicalDevice = VK_NULL_HANDLE;
+    }
 
     if (VK_NULL_HANDLE != mPhysicalDevice) {
         // TODO: ???
@@ -270,6 +283,36 @@ auto VulkanRenderer::pickPhysicalDevice() -> void {
     if (VK_NULL_HANDLE == mPhysicalDevice) {
         throw VulkanRuntimeException("Could not find any rendering device that supports the required properties");
     }
+}
+
+auto VulkanRenderer::createLogicalDevice() -> void {
+    uint32_t queueFamilyIndex = findQueueFamilies(mPhysicalDevice);
+
+    constexpr float queuePriority = 1.0f;
+
+    VkDeviceQueueCreateInfo queueCreateInfo{};
+    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueCreateInfo.queueFamilyIndex = queueFamilyIndex;
+    queueCreateInfo.queueCount = 1;
+    queueCreateInfo.pQueuePriorities = &queuePriority;
+
+    VkPhysicalDeviceFeatures deviceFeatures{};
+
+    std::vector deviceExtensions = VulkanExtensionManager::getRequiredDeviceExtensions();
+
+    VkDeviceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.queueCreateInfoCount = 1;
+    createInfo.pQueueCreateInfos = &queueCreateInfo;
+    createInfo.pEnabledFeatures = &deviceFeatures;
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+    createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+
+    if (const auto createDeviceResult = vkCreateDevice(mPhysicalDevice, &createInfo, nullptr, &mLogicalDevice); createDeviceResult != VK_SUCCESS) {
+        throw VulkanRuntimeException("Failed to create logical device!", createDeviceResult);
+    }
+
+    vkGetDeviceQueue(mLogicalDevice, queueFamilyIndex, 0, &mSelectedGraphicsQueue);
 }
 
 auto VulkanRenderer::determineInstanceLayers() -> std::vector<std::string> {

@@ -34,6 +34,7 @@ namespace adelie::renderer::vulkan {
             auto findQueueFamilies(VkPhysicalDevice device) const -> uint32_t;
             auto isDeviceSuitable(VkPhysicalDevice device) const -> bool;
             auto pickPhysicalDevice() -> void;
+            auto createLogicalDevice() -> void;
 
             static auto determineInstanceLayers() -> std::vector<std::string>;
             static auto queueFamilyFlagsToString(const VkQueueFlags& flags) -> std::string;
@@ -41,6 +42,8 @@ namespace adelie::renderer::vulkan {
             VkInstance mInstance;
             VkSurfaceKHR mSurface;
             VkPhysicalDevice mPhysicalDevice;
+            VkDevice mLogicalDevice;
+            VkQueue mSelectedGraphicsQueue;
 
     }; /* class VulkanRenderer */
 
