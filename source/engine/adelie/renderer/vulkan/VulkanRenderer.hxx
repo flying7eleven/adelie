@@ -35,6 +35,7 @@ namespace adelie::renderer::vulkan {
             auto isDeviceSuitable(VkPhysicalDevice device) const -> bool;
             auto pickPhysicalDevice() -> void;
             auto createLogicalDevice() -> void;
+            auto createImageViews() -> void;
             auto createSwapChain(const std::unique_ptr<core::renderer::WindowInterface>& windowInterface) -> void;
             auto createRenderPass() -> void;
 
@@ -60,6 +61,7 @@ namespace adelie::renderer::vulkan {
             VkQueue mSelectedGraphicsQueue;
             VkSwapchainKHR mSwapChain;
             std::vector<VkImage> mSwapChainImages;
+            std::vector<VkImageView> mSwapChainImageViews;
             VkFormat mSwapChainImageFormat;
             VkExtent2D mSwapChainExtent;
             VkDebugUtilsMessengerEXT mDebugMessenger;
