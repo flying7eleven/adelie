@@ -36,6 +36,7 @@ namespace adelie::renderer::vulkan {
             auto pickPhysicalDevice() -> void;
             auto createLogicalDevice() -> void;
             auto createSwapChain(const std::unique_ptr<core::renderer::WindowInterface>& windowInterface) -> void;
+            auto createRenderPass() -> void;
 
             static auto determineInstanceLayers() -> std::vector<std::string>;
             static auto determineInstanceExtensions() -> std::vector<std::string>;
@@ -62,6 +63,7 @@ namespace adelie::renderer::vulkan {
             VkFormat mSwapChainImageFormat;
             VkExtent2D mSwapChainExtent;
             VkDebugUtilsMessengerEXT mDebugMessenger;
+            VkRenderPass mRenderPass;
 
     }; /* class VulkanRenderer */
 

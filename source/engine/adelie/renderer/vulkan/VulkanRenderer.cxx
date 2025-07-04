@@ -30,6 +30,7 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     mSwapChainImages.clear();
     mSwapChainImageFormat = VK_FORMAT_UNDEFINED;
     mSwapChainExtent = {.width = 0, .height = 0};
+    mRenderPass = VK_NULL_HANDLE;
 
     AdelieLogDebug("Start initializing VulkanRenderer");
 
@@ -98,10 +99,16 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     pickPhysicalDevice();
     createLogicalDevice();
     createSwapChain(windowInterface);
+    createRenderPass();
 }
 
 VulkanRenderer::~VulkanRenderer() noexcept {
     AdelieLogDebug("Cleaning up VulkanRenderer");
+
+    if (VK_NULL_HANDLE != mRenderPass) {
+        vkDestroyRenderPass(mLogicalDevice, mRenderPass, nullptr);
+        mRenderPass = VK_NULL_HANDLE;
+    }
 
     if (VK_NULL_HANDLE != mSwapChain) {
         vkDestroySwapchainKHR(mLogicalDevice, mSwapChain, nullptr);
@@ -520,5 +527,47 @@ auto VulkanRenderer::createDebugUtilsMessengerEXT(const VkDebugUtilsMessengerCre
 auto VulkanRenderer::destroyDebugUtilsMessengerEXT(VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) const -> void {
     if (const auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(mInstance, "vkDestroyDebugUtilsMessengerEXT")); func != nullptr) {
         func(mInstance, debugMessenger, pAllocator);
+    }
+}
+
+auto VulkanRenderer::createRenderPass() -> void {
+    VkAttachmentDescription colorAttachment{};
+    colorAttachment.format = mSwapChainImageFormat;
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    VkAttachmentReference colorAttachmentRef{};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
+
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    VkRenderPassCreateInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfo.attachmentCount = 1;
+    renderPassInfo.pAttachments = &colorAttachment;
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
+
+    if (const auto result = vkCreateRenderPass(mLogicalDevice, &renderPassInfo, nullptr, &mRenderPass); result != VK_SUCCESS) {
+        throw VulkanRuntimeException("failed to create render pass", result);
     }
 }
