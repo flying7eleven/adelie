@@ -39,6 +39,7 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     mDescriptorSetLayout = VK_NULL_HANDLE;
     mPipelineLayout = VK_NULL_HANDLE;
     mGraphicsPipeline = VK_NULL_HANDLE;
+    mSwapChainFramebuffers.clear();
 
     AdelieLogDebug("Start initializing VulkanRenderer");
 
@@ -110,10 +111,16 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     createRenderPass();
     createDescriptorSetLayout();
     createGraphicsPipeline();
+    createFramebuffers();
 }
 
 VulkanRenderer::~VulkanRenderer() noexcept {
     AdelieLogDebug("Cleaning up VulkanRenderer");
+
+    for (auto frameBuffer : mSwapChainFramebuffers) {
+        vkDestroyFramebuffer(mLogicalDevice, frameBuffer, nullptr);
+    }
+    mSwapChainFramebuffers.clear();
 
     if (VK_NULL_HANDLE != mPipelineLayout) {
         vkDestroyPipelineLayout(mLogicalDevice, mPipelineLayout, nullptr);
@@ -765,4 +772,25 @@ auto VulkanRenderer::createGraphicsPipeline() -> void {
 
     vkDestroyShaderModule(mLogicalDevice, fragShaderModule, nullptr);
     vkDestroyShaderModule(mLogicalDevice, vertShaderModule, nullptr);
+}
+
+auto VulkanRenderer::createFramebuffers() -> void {
+    mSwapChainFramebuffers.resize(mSwapChainImageViews.size());
+
+    for (size_t i = 0; i < mSwapChainImageViews.size(); i++) {
+        VkImageView attachments[] = {mSwapChainImageViews[i]};
+
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = mRenderPass;
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments = attachments;
+        framebufferInfo.width = mSwapChainExtent.width;
+        framebufferInfo.height = mSwapChainExtent.height;
+        framebufferInfo.layers = 1;
+
+        if (vkCreateFramebuffer(mLogicalDevice, &framebufferInfo, nullptr, &mSwapChainFramebuffers[i]) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create framebuffer!");
+        }
+    }
 }

@@ -39,6 +39,7 @@ namespace adelie::renderer::vulkan {
             auto createSwapChain(const std::unique_ptr<core::renderer::WindowInterface>& windowInterface) -> void;
             auto createRenderPass() -> void;
             auto createGraphicsPipeline() -> void;
+            auto createFramebuffers() -> void;
 
             static auto queueFamilyFlagsToString(const VkQueueFlags& flags) -> std::string;
             static auto chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) -> VkSurfaceFormatKHR;
@@ -68,6 +69,7 @@ namespace adelie::renderer::vulkan {
             VkDescriptorSetLayout mDescriptorSetLayout;
             VkPipelineLayout mPipelineLayout;
             VkPipeline mGraphicsPipeline;
+            std::vector<VkFramebuffer> mSwapChainFramebuffers;
 
     }; /* class VulkanRenderer */
 
