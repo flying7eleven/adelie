@@ -32,6 +32,7 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     mSwapChainExtent = {.width = 0, .height = 0};
     mSwapChainImageViews.clear();
     mRenderPass = VK_NULL_HANDLE;
+    mDescriptorSetLayout = VK_NULL_HANDLE;
 
     AdelieLogDebug("Start initializing VulkanRenderer");
 
@@ -101,10 +102,16 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     createLogicalDevice();
     createSwapChain(windowInterface);
     createRenderPass();
+    createDescriptorSetLayout();
 }
 
 VulkanRenderer::~VulkanRenderer() noexcept {
     AdelieLogDebug("Cleaning up VulkanRenderer");
+
+    if (VK_NULL_HANDLE != mDescriptorSetLayout) {
+        vkDestroyDescriptorSetLayout(mLogicalDevice, mDescriptorSetLayout, nullptr);
+        mDescriptorSetLayout = VK_NULL_HANDLE;
+    }
 
     for (auto view : mSwapChainImageViews) {
         vkDestroyImageView(mLogicalDevice, view, nullptr);
@@ -569,5 +576,44 @@ auto VulkanRenderer::createRenderPass() -> void {
 
     if (const auto result = vkCreateRenderPass(mLogicalDevice, &renderPassInfo, nullptr, &mRenderPass); result != VK_SUCCESS) {
         throw VulkanRuntimeException("failed to create render pass", result);
+    }
+}
+
+auto VulkanRenderer::createDescriptorSetLayout() -> void {
+    VkDescriptorSetLayoutBinding uboLayoutBinding{};
+    uboLayoutBinding.binding = 0;
+    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboLayoutBinding.descriptorCount = 1;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+    VkDescriptorSetLayoutBinding baseColorSamplerLayoutBinding{};
+    baseColorSamplerLayoutBinding.binding = 1;
+    baseColorSamplerLayoutBinding.descriptorCount = 1;
+    baseColorSamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    baseColorSamplerLayoutBinding.pImmutableSamplers = nullptr;
+    baseColorSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorSetLayoutBinding normalSamplerLayoutBinding{};
+    normalSamplerLayoutBinding.binding = 2;
+    normalSamplerLayoutBinding.descriptorCount = 1;
+    normalSamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    normalSamplerLayoutBinding.pImmutableSamplers = nullptr;
+    normalSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorSetLayoutBinding roughnessSamplerLayoutBinding{};
+    roughnessSamplerLayoutBinding.binding = 3;
+    roughnessSamplerLayoutBinding.descriptorCount = 1;
+    roughnessSamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    roughnessSamplerLayoutBinding.pImmutableSamplers = nullptr;
+    roughnessSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    std::array<VkDescriptorSetLayoutBinding, 4> bindings = {uboLayoutBinding, baseColorSamplerLayoutBinding, normalSamplerLayoutBinding, roughnessSamplerLayoutBinding};
+    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+    layoutInfo.pBindings = bindings.data();
+
+    if (const auto result = vkCreateDescriptorSetLayout(mLogicalDevice, &layoutInfo, nullptr, &mDescriptorSetLayout); result != VK_SUCCESS) {
+        throw VulkanRuntimeException("failed to create descriptor set layout", result);
     }
 }
