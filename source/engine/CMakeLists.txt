@@ -40,7 +40,9 @@ set(ADELIE_SOURCE_EXCEPTION ${ADELIE_SOURCE_EXCEPTION} adelie/exception/RuntimeE
 set(ADELIE_SOURCE_EXCEPTION ${ADELIE_SOURCE_EXCEPTION} adelie/exception/VulkanRuntimeException.hxx adelie/exception/VulkanRuntimeException.cxx)
 
 #
+set(ADELIE_SOURCE_RENDERER_VULKAN ${ADELIE_SOURCE_RENDERER_VULKAN} adelie/renderer/vulkan/VulkanVertex.hxx)
 set(ADELIE_SOURCE_RENDERER_VULKAN ${ADELIE_SOURCE_RENDERER_VULKAN} adelie/renderer/vulkan/VulkanRenderer.hxx adelie/renderer/vulkan/VulkanRenderer.cxx)
+set(ADELIE_SOURCE_RENDERER_VULKAN ${ADELIE_SOURCE_RENDERER_VULKAN} adelie/renderer/vulkan/VulkanShaderManager.hxx adelie/renderer/vulkan/VulkanShaderManager.cxx)
 set(ADELIE_SOURCE_RENDERER_VULKAN ${ADELIE_SOURCE_RENDERER_VULKAN} adelie/renderer/vulkan/VulkanExtensionManager.hxx adelie/renderer/vulkan/VulkanExtensionManager.cxx)
 
 # create a list of all source files of the I/O module of the engine
