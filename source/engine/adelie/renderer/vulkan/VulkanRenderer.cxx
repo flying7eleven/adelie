@@ -118,50 +118,66 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
 
 VulkanRenderer::~VulkanRenderer() noexcept {
     AdelieLogDebug("Cleaning up VulkanRenderer");
+    vkDeviceWaitIdle(mLogicalDevice);
 
     if (VK_NULL_HANDLE != mCommandPool) {
         vkDestroyCommandPool(mLogicalDevice, mCommandPool, nullptr);
         mCommandPool = VK_NULL_HANDLE;
+        AdelieLogTrace("  command pool destroyed");
     }
 
-    for (const auto frameBuffer : mSwapChainFramebuffers) {
-        vkDestroyFramebuffer(mLogicalDevice, frameBuffer, nullptr);
+    if (!mSwapChainFramebuffers.empty()) {
+        for (const auto frameBuffer : mSwapChainFramebuffers) {
+            vkDestroyFramebuffer(mLogicalDevice, frameBuffer, nullptr);
+        }
+        mSwapChainFramebuffers.clear();
+        AdelieLogTrace("  frame buffers destroyed");
     }
-    mSwapChainFramebuffers.clear();
 
     if (VK_NULL_HANDLE != mPipelineLayout) {
         vkDestroyPipelineLayout(mLogicalDevice, mPipelineLayout, nullptr);
         mPipelineLayout = VK_NULL_HANDLE;
+        AdelieLogTrace("  pipeline layout destroyed");
     }
 
     if (VK_NULL_HANDLE != mGraphicsPipeline) {
         vkDestroyPipeline(mLogicalDevice, mGraphicsPipeline, nullptr);
         mGraphicsPipeline = VK_NULL_HANDLE;
+        AdelieLogTrace("  graphics pipeline destroyed");
     }
 
     if (VK_NULL_HANDLE != mDescriptorSetLayout) {
         vkDestroyDescriptorSetLayout(mLogicalDevice, mDescriptorSetLayout, nullptr);
         mDescriptorSetLayout = VK_NULL_HANDLE;
+        AdelieLogTrace("  descriptor set layout destroyed");
     }
 
-    for (const auto view : mSwapChainImageViews) {
-        vkDestroyImageView(mLogicalDevice, view, nullptr);
+    if (!mSwapChainImageViews.empty()) {
+        for (const auto view : mSwapChainImageViews) {
+            vkDestroyImageView(mLogicalDevice, view, nullptr);
+        }
+        mSwapChainImageViews.clear();
+        AdelieLogTrace("  swap chain image views destroyed");
     }
-    mSwapChainImageViews.clear();
 
-    for (const auto image : mSwapChainImages) {
-        vkDestroyImage(mLogicalDevice, image, nullptr);
+    if (!mSwapChainImages.empty()) {
+        for (const auto image : mSwapChainImages) {
+            vkDestroyImage(mLogicalDevice, image, nullptr);
+        }
+        mSwapChainImages.clear();
+        AdelieLogTrace("  swap chain images destroyed");
     }
-    mSwapChainImages.clear();
 
     if (VK_NULL_HANDLE != mRenderPass) {
         vkDestroyRenderPass(mLogicalDevice, mRenderPass, nullptr);
         mRenderPass = VK_NULL_HANDLE;
+        AdelieLogTrace("  render pass destroyed");
     }
 
     if (VK_NULL_HANDLE != mSwapChain) {
         vkDestroySwapchainKHR(mLogicalDevice, mSwapChain, nullptr);
         mSwapChain = VK_NULL_HANDLE;
+        AdelieLogTrace("  swap chain destroyed");
     }
 
     if (VK_NULL_HANDLE != mSelectedGraphicsQueue) {
@@ -172,25 +188,30 @@ VulkanRenderer::~VulkanRenderer() noexcept {
     if (VK_NULL_HANDLE != mLogicalDevice) {
         vkDestroyDevice(mLogicalDevice, nullptr);
         mLogicalDevice = VK_NULL_HANDLE;
+        AdelieLogTrace("  logical device freed");
     }
 
     if (VK_NULL_HANDLE != mPhysicalDevice) {
         // TODO: ???
         mPhysicalDevice = VK_NULL_HANDLE;
+        AdelieLogTrace("  physical device freed");
     }
 
     if (VK_NULL_HANDLE != mSurface) {
         vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
         mSurface = VK_NULL_HANDLE;
+        AdelieLogTrace("  surface handle destroyed");
     }
 
     if (VK_NULL_HANDLE != mDebugMessenger) {
         destroyDebugUtilsMessengerEXT(nullptr);
         mDebugMessenger = VK_NULL_HANDLE;
+        AdelieLogTrace("  debug messenger destroyed");
     }
 
     if (VK_NULL_HANDLE != mInstance) {
         vkDestroyInstance(mInstance, nullptr);
+        AdelieLogTrace("  Vulkan instance destroyed");
         mInstance = nullptr;
     }
 }
@@ -376,7 +397,7 @@ auto VulkanRenderer::pickPhysicalDevice() -> void {
 }
 
 auto VulkanRenderer::createLogicalDevice() -> void {
-    uint32_t queueFamilyIndex = findQueueFamilies(mPhysicalDevice);
+    const auto queueFamilyIndex = findQueueFamilies(mPhysicalDevice);
 
     constexpr float queuePriority = 1.0f;
 
@@ -388,7 +409,7 @@ auto VulkanRenderer::createLogicalDevice() -> void {
 
     VkPhysicalDeviceFeatures deviceFeatures{};
 
-    std::vector deviceExtensions = VulkanExtensionManager::getRequiredDeviceExtensions();
+    const auto deviceExtensions = VulkanExtensionManager::getRequiredDeviceExtensions();
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -444,11 +465,11 @@ auto VulkanRenderer::createSwapChain(const std::unique_ptr<core::renderer::Windo
     std::vector<VkPresentModeKHR> presentModes(presentModeCount);
     vkGetPhysicalDeviceSurfacePresentModesKHR(mPhysicalDevice, mSurface, &presentModeCount, presentModes.data());
 
-    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(formats);
-    VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes);
-    VkExtent2D extent = chooseSwapExtent(capabilities, windowInterface);
+    const auto [format, colorSpace] = chooseSwapSurfaceFormat(formats);
+    const auto presentMode = chooseSwapPresentMode(presentModes);
+    const auto extent = chooseSwapExtent(capabilities, windowInterface);
 
-    uint32_t imageCount = capabilities.minImageCount + 1;
+    auto imageCount = capabilities.minImageCount + 1;
     if (capabilities.maxImageCount > 0 && imageCount > capabilities.maxImageCount) {
         imageCount = capabilities.maxImageCount;
     }
@@ -457,8 +478,8 @@ auto VulkanRenderer::createSwapChain(const std::unique_ptr<core::renderer::Windo
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     createInfo.surface = mSurface;
     createInfo.minImageCount = imageCount;
-    createInfo.imageFormat = surfaceFormat.format;
-    createInfo.imageColorSpace = surfaceFormat.colorSpace;
+    createInfo.imageFormat = format;
+    createInfo.imageColorSpace = colorSpace;
     createInfo.imageExtent = extent;
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -476,7 +497,7 @@ auto VulkanRenderer::createSwapChain(const std::unique_ptr<core::renderer::Windo
     mSwapChainImages.resize(imageCount);
     vkGetSwapchainImagesKHR(mLogicalDevice, mSwapChain, &imageCount, mSwapChainImages.data());
 
-    mSwapChainImageFormat = surfaceFormat.format;
+    mSwapChainImageFormat = format;
     mSwapChainExtent = extent;
 }
 
@@ -641,7 +662,7 @@ auto VulkanRenderer::createDescriptorSetLayout() -> void {
     roughnessSamplerLayoutBinding.pImmutableSamplers = nullptr;
     roughnessSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    std::array<VkDescriptorSetLayoutBinding, 4> bindings = {uboLayoutBinding, baseColorSamplerLayoutBinding, normalSamplerLayoutBinding, roughnessSamplerLayoutBinding};
+    const std::array bindings = {uboLayoutBinding, baseColorSamplerLayoutBinding, normalSamplerLayoutBinding, roughnessSamplerLayoutBinding};
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -696,9 +717,7 @@ auto VulkanRenderer::createGraphicsPipeline() -> void {
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
-    VkRect2D scissor{};
-    scissor.offset = {0, 0};
-    scissor.extent = mSwapChainExtent;
+    VkRect2D scissor{.offset = {0, 0}, .extent = mSwapChainExtent};
 
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -796,8 +815,8 @@ auto VulkanRenderer::createFramebuffers() -> void {
         framebufferInfo.height = mSwapChainExtent.height;
         framebufferInfo.layers = 1;
 
-        if (vkCreateFramebuffer(mLogicalDevice, &framebufferInfo, nullptr, &mSwapChainFramebuffers[i]) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create framebuffer!");
+        if (const auto result = vkCreateFramebuffer(mLogicalDevice, &framebufferInfo, nullptr, &mSwapChainFramebuffers[i]); result != VK_SUCCESS) {
+            throw VulkanRuntimeException("failed to create frame buffer", result);
         }
     }
 }
