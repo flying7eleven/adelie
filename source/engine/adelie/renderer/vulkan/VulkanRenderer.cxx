@@ -522,6 +522,9 @@ auto VKAPI_CALL VulkanRenderer::debugCallback(VkDebugUtilsMessageSeverityFlagBit
                     for (auto i = 0u; i < pCallbackData->objectCount; i++) {
                         AdelieLogError("    Type: {}", string_VkObjectType(pCallbackData->pObjects[i].objectType));
                         AdelieLogError("    Handle: 0x{:x}", pCallbackData->pObjects[i].objectHandle);
+                        if (nullptr != pCallbackData->pObjects[i].pObjectName) {
+                            AdelieLogError("    Name: {}", std::string(pCallbackData->pObjects[i].pObjectName));
+                        }
                     }
                 }
                 if (pCallbackData->cmdBufLabelCount > 0) {
