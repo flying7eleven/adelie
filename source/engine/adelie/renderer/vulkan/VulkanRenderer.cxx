@@ -473,18 +473,51 @@ auto VKAPI_CALL VulkanRenderer::debugCallback(VkDebugUtilsMessageSeverityFlagBit
                                               VkDebugUtilsMessageTypeFlagsEXT messageType,
                                               const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                                               void* pUserData) -> VKAPI_ATTR VkBool32 {
-    AdelieLogTrace("Validation layer: {}", pCallbackData->pMessage);
+    switch (messageSeverity) {
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+            AdelieLogTrace("Validation layer: {}", pCallbackData->pMessage);
+            break;
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+            AdelieLogInformation("Validation layer: {}", pCallbackData->pMessage);
+            break;
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+            AdelieLogWarning("Validation layer: {}", pCallbackData->pMessage);
+            break;
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+            if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT) {
+                AdelieLogError("Vulkan API usage validation failed: {}", pCallbackData->pMessageIdName);
+                if (pCallbackData->objectCount > 0) {
+                    AdelieLogError("  Causing objects: {}", pCallbackData->objectCount);
+                    for (auto i = 0u; i < pCallbackData->objectCount; i++) {
+                        AdelieLogError("    Type: {}", string_VkObjectType(pCallbackData->pObjects[i].objectType));
+                        AdelieLogError("    Handle: 0x{:x}", pCallbackData->pObjects[i].objectHandle);
+                    }
+                }
+                if (pCallbackData->cmdBufLabelCount > 0) {
+                    AdelieLogError("  Causing command buffer labels: {}", pCallbackData->cmdBufLabelCount);
+                    for (auto i = 0u; i < pCallbackData->cmdBufLabelCount; i++) {
+                        AdelieLogError("    Name: {}", std::string(pCallbackData->pCmdBufLabels[i].pLabelName));
+                    }
+                }
+            }
+            return VK_TRUE;  // it's serious enough to terminate now, this might be a severe bug
+        default:
+            AdelieLogTrace("Validation layer: {}", pCallbackData->pMessage);
+            break;
+    }
+
+    // we can continue, it's not severe enough to terminate
     return VK_FALSE;
 }
 
-VkResult VulkanRenderer::createDebugUtilsMessengerEXT(const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+auto VulkanRenderer::createDebugUtilsMessengerEXT(const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) const -> VkResult {
     if (const auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(mInstance, "vkCreateDebugUtilsMessengerEXT")); func != nullptr) {
         return func(mInstance, pCreateInfo, pAllocator, pDebugMessenger);
     }
     return VK_ERROR_EXTENSION_NOT_PRESENT;
 }
 
-void VulkanRenderer::destroyDebugUtilsMessengerEXT(VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+auto VulkanRenderer::destroyDebugUtilsMessengerEXT(VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) const -> void {
     if (const auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(mInstance, "vkDestroyDebugUtilsMessengerEXT")); func != nullptr) {
         func(mInstance, debugMessenger, pAllocator);
     }
