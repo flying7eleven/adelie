@@ -53,6 +53,7 @@ namespace adelie::renderer::vulkan {
             auto createDebugUtilsMessengerEXT(const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) const -> VkResult;
             auto destroyDebugUtilsMessengerEXT(const VkAllocationCallbacks* pAllocator) const -> void;
             auto createDescriptorSetLayout() -> void;
+            auto createCommandPool() -> void;
 
             VkInstance mInstance;
             VkSurfaceKHR mSurface;
@@ -70,6 +71,7 @@ namespace adelie::renderer::vulkan {
             VkPipelineLayout mPipelineLayout;
             VkPipeline mGraphicsPipeline;
             std::vector<VkFramebuffer> mSwapChainFramebuffers;
+            VkCommandPool mCommandPool;
 
     }; /* class VulkanRenderer */
 

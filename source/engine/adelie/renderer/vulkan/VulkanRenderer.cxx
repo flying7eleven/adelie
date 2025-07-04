@@ -40,6 +40,7 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     mPipelineLayout = VK_NULL_HANDLE;
     mGraphicsPipeline = VK_NULL_HANDLE;
     mSwapChainFramebuffers.clear();
+    mCommandPool = VK_NULL_HANDLE;
 
     AdelieLogDebug("Start initializing VulkanRenderer");
 
@@ -112,12 +113,18 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     createDescriptorSetLayout();
     createGraphicsPipeline();
     createFramebuffers();
+    createCommandPool();
 }
 
 VulkanRenderer::~VulkanRenderer() noexcept {
     AdelieLogDebug("Cleaning up VulkanRenderer");
 
-    for (auto frameBuffer : mSwapChainFramebuffers) {
+    if (VK_NULL_HANDLE != mCommandPool) {
+        vkDestroyCommandPool(mLogicalDevice, mCommandPool, nullptr);
+        mCommandPool = VK_NULL_HANDLE;
+    }
+
+    for (const auto frameBuffer : mSwapChainFramebuffers) {
         vkDestroyFramebuffer(mLogicalDevice, frameBuffer, nullptr);
     }
     mSwapChainFramebuffers.clear();
@@ -137,12 +144,12 @@ VulkanRenderer::~VulkanRenderer() noexcept {
         mDescriptorSetLayout = VK_NULL_HANDLE;
     }
 
-    for (auto view : mSwapChainImageViews) {
+    for (const auto view : mSwapChainImageViews) {
         vkDestroyImageView(mLogicalDevice, view, nullptr);
     }
     mSwapChainImageViews.clear();
 
-    for (auto image : mSwapChainImages) {
+    for (const auto image : mSwapChainImages) {
         vkDestroyImage(mLogicalDevice, image, nullptr);
     }
     mSwapChainImages.clear();
@@ -792,5 +799,18 @@ auto VulkanRenderer::createFramebuffers() -> void {
         if (vkCreateFramebuffer(mLogicalDevice, &framebufferInfo, nullptr, &mSwapChainFramebuffers[i]) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create framebuffer!");
         }
+    }
+}
+
+auto VulkanRenderer::createCommandPool() -> void {
+    const auto queueFamilyIndex = findQueueFamilies(mPhysicalDevice);
+
+    VkCommandPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.queueFamilyIndex = queueFamilyIndex;
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+    if (const auto result = vkCreateCommandPool(mLogicalDevice, &poolInfo, nullptr, &mCommandPool); result != VK_SUCCESS) {
+        throw VulkanRuntimeException("failed to create command pool", result);
     }
 }
