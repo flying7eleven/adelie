@@ -21,6 +21,7 @@ using adelie::renderer::vulkan::VulkanRenderer;
 
 VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInterface>& windowInterface) {
     mInstance = VK_NULL_HANDLE;
+    mDebugMessenger = VK_NULL_HANDLE;
     mSurface = VK_NULL_HANDLE;
     mPhysicalDevice = VK_NULL_HANDLE;
     mLogicalDevice = VK_NULL_HANDLE;
@@ -44,12 +45,19 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
-    auto selectedInstanceLayers = determineInstanceLayers();
+    auto selectedInstanceLayers = VulkanExtensionManager::getRequiredInstanceLayers();
+    auto selectedInstanceExtensions = VulkanExtensionManager::getRequiredInstanceExtensions();
 
     std::vector<const char*> instanceLayers;
     instanceLayers.reserve(selectedInstanceLayers.size());
     for (const auto& layer : selectedInstanceLayers) {
         instanceLayers.push_back(layer.c_str());
+    }
+
+    std::vector<const char*> instanceExtensions;
+    instanceExtensions.reserve(selectedInstanceExtensions.size());
+    for (const auto& extension : selectedInstanceExtensions) {
+        instanceExtensions.emplace_back(extension.c_str());
     }
 
     createInfo.enabledLayerCount = static_cast<uint32_t>(instanceLayers.size());
@@ -62,7 +70,7 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
 
     const auto extensions = VulkanExtensionManager::getRequiredInstanceExtensions();
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-    createInfo.ppEnabledExtensionNames = extensions.data();
+    createInfo.ppEnabledExtensionNames = instanceExtensions.data();
 
     std::vector<std::string> extensionNames;
     extensionNames.reserve(extensions.size());
@@ -73,6 +81,17 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
 
     if (const auto result = vkCreateInstance(&createInfo, nullptr, &mInstance); result != VK_SUCCESS) {
         throw VulkanRuntimeException("Failed to create Vulkan instance!", result);
+    }
+
+    VkDebugUtilsMessengerCreateInfoEXT debugUtilsCreateInfo{};
+    debugUtilsCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    debugUtilsCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    debugUtilsCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    debugUtilsCreateInfo.pfnUserCallback = debugCallback;
+    debugUtilsCreateInfo.pUserData = nullptr;
+
+    if (const auto createDebugUtilsResult = createDebugUtilsMessengerEXT(&debugUtilsCreateInfo, nullptr, &mDebugMessenger); createDebugUtilsResult != VK_SUCCESS) {
+        throw VulkanRuntimeException("failed to set up debug messenger", createDebugUtilsResult);
     }
 
     createSurface(windowInterface);
@@ -107,6 +126,11 @@ VulkanRenderer::~VulkanRenderer() noexcept {
     if (VK_NULL_HANDLE != mSurface) {
         vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
         mSurface = VK_NULL_HANDLE;
+    }
+
+    if (VK_NULL_HANDLE != mDebugMessenger) {
+        destroyDebugUtilsMessengerEXT(mDebugMessenger, nullptr);
+        mDebugMessenger = VK_NULL_HANDLE;
     }
 
     if (VK_NULL_HANDLE != mInstance) {
@@ -410,37 +434,58 @@ auto VulkanRenderer::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabiliti
 }
 
 auto VulkanRenderer::determineInstanceLayers() -> std::vector<std::string> {
+    std::vector<std::string> requestedLayers;
 #if defined(ADELIE_BUILD_TYPE_DEBUG)
-    const std::vector validationLayers = {"VK_LAYER_KHRONOS_validation"};
+    requestedLayers.emplace_back("VK_LAYER_KHRONOS_validation");
 #endif
+
     std::vector<std::string> selectedLayers;
 
     uint32_t layerCount;
     if (const auto result = vkEnumerateInstanceLayerProperties(&layerCount, nullptr); result != VK_SUCCESS) {
-        AdelieLogError("Failed to enumerate supported Vulkan layer count");
-        throw VulkanRuntimeException("Failed to enumerate supported Vulkan layer count", result);
+        throw VulkanRuntimeException("failed to enumerate supported Vulkan layer count", result);
     }
 
     std::vector<VkLayerProperties> availableLayers(layerCount);
     if (const auto result = vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data()); result != VK_SUCCESS) {
-        AdelieLogError("Failed to enumerate supported Vulkan layers");
-        throw VulkanRuntimeException("Failed to enumerate supported Vulkan layers", result);
+        throw VulkanRuntimeException("failed to enumerate supported Vulkan layers", result);
     }
+
     AdelieLogDebug("Found {} supported Vulkan layers", availableLayers.size());
-
-#if defined(ADELIE_BUILD_TYPE_DEBUG)
     for (const auto& layer : availableLayers) {
-        AdelieLogDebug("  {} ({})", layer.layerName, layer.description);
+        const std::string layerName(layer.layerName);
+        const std::string layerDescription(layer.description);
+        AdelieLogDebug("  {} ({})", layerName, layerDescription);
 
-        if (std::strncmp(validationLayers.at(0), layer.layerName, strlen(validationLayers.at(0))) == 0) {
-            selectedLayers.emplace_back(layer.layerName);
+        if (const auto it = std::ranges::find_if(requestedLayers, [&layerName](const auto& requested) { return layerName == requested; }); it != requestedLayers.end()) {
+            selectedLayers.push_back(layerName);
         }
     }
-#endif
 
     if (!selectedLayers.empty()) {
-        AdelieLogDebug("Requesting the following Vulkan layer(s): {}", boost::algorithm::join(selectedLayers, ", "));
+        AdelieLogDebug("Requesting the following Vulkan instance layer(s): {}", boost::algorithm::join(selectedLayers, ", "));
     }
 
     return selectedLayers;
+}
+
+auto VKAPI_CALL VulkanRenderer::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                              VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                              const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                              void* pUserData) -> VKAPI_ATTR VkBool32 {
+    AdelieLogTrace("Validation layer: {}", pCallbackData->pMessage);
+    return VK_FALSE;
+}
+
+VkResult VulkanRenderer::createDebugUtilsMessengerEXT(const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+    if (const auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(mInstance, "vkCreateDebugUtilsMessengerEXT")); func != nullptr) {
+        return func(mInstance, pCreateInfo, pAllocator, pDebugMessenger);
+    }
+    return VK_ERROR_EXTENSION_NOT_PRESENT;
+}
+
+void VulkanRenderer::destroyDebugUtilsMessengerEXT(VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+    if (const auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(mInstance, "vkDestroyDebugUtilsMessengerEXT")); func != nullptr) {
+        func(mInstance, debugMessenger, pAllocator);
+    }
 }

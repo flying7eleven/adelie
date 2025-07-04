@@ -38,10 +38,19 @@ namespace adelie::renderer::vulkan {
             auto createSwapChain(const std::unique_ptr<core::renderer::WindowInterface>& windowInterface) -> void;
 
             static auto determineInstanceLayers() -> std::vector<std::string>;
+            static auto determineInstanceExtensions() -> std::vector<std::string>;
+
             static auto queueFamilyFlagsToString(const VkQueueFlags& flags) -> std::string;
             static auto chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) -> VkSurfaceFormatKHR;
             static auto chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes) -> VkPresentModeKHR;
             static auto chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, const std::unique_ptr<core::renderer::WindowInterface>& windowInterface) -> VkExtent2D;
+
+            static auto VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                 VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                 const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                                 void* pUserData) -> VKAPI_ATTR VkBool32;
+            auto createDebugUtilsMessengerEXT(const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) -> VkResult;
+            auto destroyDebugUtilsMessengerEXT(VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) -> void;
 
             VkInstance mInstance;
             VkSurfaceKHR mSurface;
@@ -52,6 +61,7 @@ namespace adelie::renderer::vulkan {
             std::vector<VkImage> mSwapChainImages;
             VkFormat mSwapChainImageFormat;
             VkExtent2D mSwapChainExtent;
+            VkDebugUtilsMessengerEXT mDebugMessenger;
 
     }; /* class VulkanRenderer */
 
