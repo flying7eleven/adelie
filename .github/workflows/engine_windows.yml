@@ -20,7 +20,7 @@ jobs:
         continue-on-error: true
         with:
           # vulkan-validationlayers is currently not building
-          pkgs: boost-stacktrace boost-thread yaml-cpp ms-gsl freetype vulkan vulkan-tools vulkan-utility-libraries
+          pkgs: boost-stacktrace boost-thread vulkan vulkan-tools vulkan-utility-libraries glm
           triplet: x64-windows-release
           token: ${{ github.token }}
       - name: Upload vcpkg logs if install failed

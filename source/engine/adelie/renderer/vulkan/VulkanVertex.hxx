@@ -7,7 +7,9 @@ namespace adelie::renderer::vulkan {
     #include <vulkan/vulkan.h>
 
     #include <adelie/adelie.hxx>
-    #include <glm/glm.hpp>
+    #include <array>
+    #include <glm/vec2.hpp>
+    #include <glm/vec3.hpp>
 
     struct ADELIE_API VulkanVertex {
             glm::vec3 pos;

@@ -74,6 +74,11 @@ elseif (WIN32)
     set(ADELIE_SOURCE_PLATFORM ${ADELIE_SOURCE_PLATFORM} adelie/platform/windows/Win32Window.hxx adelie/platform/windows/Win32Window.cxx)
 endif ()
 
+# some required definitions for the GLM library
+add_compile_definitions("GLM_ENABLE_EXPERIMENTAL")
+add_compile_definitions("GLM_FORCE_DEPTH_ZERO_TO_ONE")
+add_compile_definitions("GLM_FORCE_RADIANS")
+
 #
 add_compile_definitions("ADELIE_BUILD_LIBRARY")
 

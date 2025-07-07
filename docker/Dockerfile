@@ -1,6 +1,6 @@
 FROM ubuntu:25.04
 
-RUN apt update && apt install -y cmake clang libgl-dev libglx-dev libboost-all-dev libyaml-cpp-dev libmsgsl-dev libvulkan-dev vulkan-utility-libraries-dev libxcb1-dev libxcb-icccm4-dev libwayland-dev pkg-config wayland-protocols
+RUN apt update && apt install -y cmake clang libgl-dev libglx-dev libboost-all-dev libyaml-cpp-dev libmsgsl-dev libvulkan-dev vulkan-utility-libraries-dev libxcb1-dev libxcb-icccm4-dev libwayland-dev pkg-config wayland-protocols libglm-dev
 RUN mkdir -p /build/cmake
 WORKDIR /build
 COPY . .

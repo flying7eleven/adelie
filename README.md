@@ -21,19 +21,20 @@ the plan for the future. Let's see how far I will get.
 
 #### On Linux (Examples for Arch Linux)
 - Clang compiler with C++20 support
-- Install the dependencies using ```pacman``` via ```pacman -S boost yaml-cpp vulkan-devel microsoft-gsl freetype``` (TODO: check if they are correct)
+- Install the dependencies...
+  - ... on Arch Linux using ```pacman``` via ```pacman -S boost vulkan-devel glm``` (TODO: not correct for wayland and xcb)
+  - ... on a Debian-based system use ```apt``` via ```apt install clang libboost-all-dev libvulkan-dev vulkan-utility-libraries-dev libxcb1-dev libxcb-icccm4-dev libwayland-dev pkg-config wayland-protocols libglm-dev```
 - Optional: The AMD standalone Vulkan driver via ```pacman -S amdvlk```
 
 #### On Windows
 - Microsoft Visual C++ compiler with C++20 support
 - [vcpkg](https://github.com/Microsoft/vcpkg) as a package manager for the dependencies
-- Install the [VulkanSDK](https://vulkan.lunarg.com/sdk/home#windows) and set the environment variable ```VULKAN_SDK``` to the installation path 
-- Install the dependencies using ```vcpkg``` via ```vcpkg install boost-stacktrace boost-thread yaml-cpp ms-gsl freetype```
+- Install the dependencies using ```vcpkg``` via ```vcpkg install boost-stacktrace boost-thread vulkan vulkan-tools vulkan-utility-libraries glm```
 
 #### On macOS
 - Clang compiler with C++20 support
 - [Homebrew](https://brew.sh/) installed
-- Install the dependencies using ```brew``` via ```brew install git clang-format boost yaml-cpp cpp-gsl freetype```
+- Install the dependencies using ```brew``` via ```brew install git clang-format boost molten-vk vulkan-extensionlayer vulkan-headers vulkan-loader vulkan-profiles vulkan-tools vulkan-utility-libraries vulkan-validationlayers glm```
 
 ### Further prerequisites
 
