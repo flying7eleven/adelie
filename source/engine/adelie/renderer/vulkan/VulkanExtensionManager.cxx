@@ -22,16 +22,16 @@ auto VulkanExtensionManager::getRequiredInstanceExtensions() -> std::vector<std:
 #endif
 
 #ifdef ADELIE_PLATFORM_WINDOWS
-    extensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+    requestedExtensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 #endif
 
 #ifdef ADELIE_PLATFORM_LINUX
     switch (WindowFactory::getWindowType()) {
         case WindowType::WAYLAND_API:
-            extensions.emplace_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
+            requestedExtensions.emplace_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
             break;
         case WindowType::XCB_API:
-            extensions.emplace_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+            requestedExtensions.emplace_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
             break;
         default:
             throw RuntimeException("Unknown Window type!");
