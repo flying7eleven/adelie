@@ -3,7 +3,10 @@
 #if !defined(__ADELIE_INTERNAL_HXX__)
     #define __ADELIE_INTERNAL_HXX__
 
-    #include <memory>  // std::unique_ptr, std::shared_ptr
+    #include <stb/stb_image.h>  // loading images from disk / memory
+
+    #include <glm/glm.hpp>  // all math-related stuff e.g., glm::vec3, glm::mat4x4
+    #include <memory>       // std::unique_ptr, std::shared_ptr
 
     // define the corresponding debug definitions which can be used to determine the build type
     #if !defined(NDEBUG)

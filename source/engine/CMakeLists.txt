@@ -6,6 +6,7 @@ include_directories(SYSTEM "${CMAKE_CURRENT_SOURCE_DIR}/vendor")
 
 #
 set(ADELIE_SOURCE_CORE ${ADELIE_SOURCE_CORE} Adelie.hxx)
+set(ADELIE_SOURCE_CORE ${ADELIE_SOURCE_CORE} adelie/adelie.hxx adelie/adelie.cxx)
 set(ADELIE_SOURCE_CORE ${ADELIE_SOURCE_CORE} adelie/VersionInformation.hxx ${version_file})
 set(ADELIE_SOURCE_CORE ${ADELIE_SOURCE_CORE} adelie/core/Input.hxx)
 set(ADELIE_SOURCE_CORE ${ADELIE_SOURCE_CORE} adelie/core/Assert.hxx)

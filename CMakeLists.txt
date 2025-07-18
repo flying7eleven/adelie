@@ -19,6 +19,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # configure the used C++ standard and configure the folder where the CMake helper scripts are stored
 set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_EXTENSIONS OFF)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/scripts/cmake")
 include("${CMAKE_SOURCE_DIR}/scripts/cmake/InstallHooks.cmake")
 
