@@ -539,44 +539,46 @@ auto VKAPI_CALL VulkanRenderer::debugCallback(VkDebugUtilsMessageSeverityFlagBit
                                               VkDebugUtilsMessageTypeFlagsEXT messageType,
                                               const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                                               void* /*pUserData*/) -> VKAPI_ATTR VkBool32 {
-    switch (messageSeverity) {
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-            AdelieLogTrace("Validation layer: {}", pCallbackData->pMessage);
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-            AdelieLogInformation("Validation layer: {}", pCallbackData->pMessage);
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-            AdelieLogWarning("Validation layer: {}", pCallbackData->pMessage);
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-            if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT) {
-                AdelieLogError("Vulkan API usage validation failed: {}", pCallbackData->pMessageIdName);
-                if (pCallbackData->objectCount > 0) {
-                    AdelieLogError("  Causing objects: {}", pCallbackData->objectCount);
-                    for (auto i = 0u; i < pCallbackData->objectCount; i++) {
-                        AdelieLogError("    Type: {}", string_VkObjectType(pCallbackData->pObjects[i].objectType));
-                        AdelieLogError("    Handle: 0x{:x}", pCallbackData->pObjects[i].objectHandle);
-                        if (nullptr != pCallbackData->pObjects[i].pObjectName) {
-                            AdelieLogError("    Name: {}", std::string(pCallbackData->pObjects[i].pObjectName));
-                        }
-                    }
-                }
-                if (pCallbackData->cmdBufLabelCount > 0) {
-                    AdelieLogError("  Causing command buffer labels: {}", pCallbackData->cmdBufLabelCount);
-                    for (auto i = 0u; i < pCallbackData->cmdBufLabelCount; i++) {
-                        AdelieLogError("    Name: {}", std::string(pCallbackData->pCmdBufLabels[i].pLabelName));
+    if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
+        AdelieLogTrace("Validation layer: {}", pCallbackData->pMessage);
+        return VK_FALSE;  // we can continue, it's not severe enough to terminate
+    }
+
+    if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+        AdelieLogInformation("Validation layer: {}", pCallbackData->pMessage);
+        return VK_FALSE;  // we can continue, it's not severe enough to terminate
+    }
+
+    if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+        AdelieLogWarning("Validation layer: {}", pCallbackData->pMessage);
+        return VK_FALSE;  // we can continue, it's not severe enough to terminate
+    }
+
+    if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+        if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT) {
+            AdelieLogError("Vulkan API usage validation failed: {}", pCallbackData->pMessageIdName);
+            if (pCallbackData->objectCount > 0) {
+                AdelieLogError("  Causing objects: {}", pCallbackData->objectCount);
+                for (auto i = 0u; i < pCallbackData->objectCount; i++) {
+                    AdelieLogError("    Type: {}", string_VkObjectType(pCallbackData->pObjects[i].objectType));
+                    AdelieLogError("    Handle: 0x{:x}", pCallbackData->pObjects[i].objectHandle);
+                    if (nullptr != pCallbackData->pObjects[i].pObjectName) {
+                        AdelieLogError("    Name: {}", std::string(pCallbackData->pObjects[i].pObjectName));
                     }
                 }
             }
-            return VK_TRUE;  // it's serious enough to terminate now, this might be a severe bug
-        default:
-            AdelieLogTrace("Validation layer: {}", pCallbackData->pMessage);
-            break;
+            if (pCallbackData->cmdBufLabelCount > 0) {
+                AdelieLogError("  Causing command buffer labels: {}", pCallbackData->cmdBufLabelCount);
+                for (auto i = 0u; i < pCallbackData->cmdBufLabelCount; i++) {
+                    AdelieLogError("    Name: {}", std::string(pCallbackData->pCmdBufLabels[i].pLabelName));
+                }
+            }
+        }
+        AdelieLogFatal("Terminating application since the validation layer detected that the application has violated a valid usage condition of the Vulkan specification");
+        return VK_TRUE;  // it's serious enough to terminate now, this might be a severe bug
     }
 
-    // we can continue, it's not severe enough to terminate
-    return VK_FALSE;
+    return VK_FALSE;  // we can continue, it's not severe enough to terminate
 }
 
 auto VulkanRenderer::createDebugUtilsMessengerEXT(const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) const -> VkResult {
