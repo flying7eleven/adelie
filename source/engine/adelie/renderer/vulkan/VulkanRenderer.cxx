@@ -333,6 +333,9 @@ auto VulkanRenderer::createIndexBuffer() -> void {
     VulkanBufferManager::createBuffer(mLogicalDevice, mPhysicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
                                       stagingBufferMemory);
 
+    debugUtilsObjectName(reinterpret_cast<uint64_t>(stagingBuffer), "createIndexBuffer.stagingBuffer", VK_OBJECT_TYPE_BUFFER);
+    debugUtilsObjectName(reinterpret_cast<uint64_t>(stagingBufferMemory), "createIndexBuffer.stagingBufferMemory", VK_OBJECT_TYPE_DEVICE_MEMORY);
+
     void* data;
     vkMapMemory(mLogicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, indices.data(), (size_t)bufferSize);
@@ -340,6 +343,9 @@ auto VulkanRenderer::createIndexBuffer() -> void {
 
     VulkanBufferManager::createBuffer(mLogicalDevice, mPhysicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mIndexBuffer,
                                       mIndexBufferMemory);
+
+    debugUtilsObjectName(reinterpret_cast<uint64_t>(mIndexBuffer), "createIndexBuffer.mIndexBuffer", VK_OBJECT_TYPE_BUFFER);
+    debugUtilsObjectName(reinterpret_cast<uint64_t>(mIndexBufferMemory), "createIndexBuffer.mIndexBufferMemory", VK_OBJECT_TYPE_DEVICE_MEMORY);
 
     VulkanBufferManager::copyBuffer(mLogicalDevice, mCommandPool, mSelectedGraphicsQueue, stagingBuffer, mIndexBuffer, bufferSize);
 
@@ -356,6 +362,9 @@ auto VulkanRenderer::createUniformBuffers() -> void {
     for (size_t i = 0; i < mSwapChainImages.size(); i++) {
         VulkanBufferManager::createBuffer(mLogicalDevice, mPhysicalDevice, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                           mUniformBuffers[i], mUniformBuffersMemory[i]);
+
+        debugUtilsObjectName(reinterpret_cast<uint64_t>(mUniformBuffers[i]), std::format("createUniformBuffers.mUniformBuffers[{}]", i).c_str(), VK_OBJECT_TYPE_BUFFER);
+        debugUtilsObjectName(reinterpret_cast<uint64_t>(mUniformBuffersMemory[i]), std::format("createUniformBuffers.mUniformBuffersMemory[{}]", i).c_str(), VK_OBJECT_TYPE_DEVICE_MEMORY);
     }
 }
 
@@ -366,6 +375,8 @@ auto VulkanRenderer::createVertexBuffer() -> void {
     VkDeviceMemory stagingBufferMemory;
     VulkanBufferManager::createBuffer(mLogicalDevice, mPhysicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
                                       stagingBufferMemory);
+    debugUtilsObjectName(reinterpret_cast<uint64_t>(stagingBuffer), "createVertexBuffer.stagingBuffer", VK_OBJECT_TYPE_BUFFER);
+    debugUtilsObjectName(reinterpret_cast<uint64_t>(stagingBufferMemory), "createVertexBuffer.stagingBufferMemory.", VK_OBJECT_TYPE_DEVICE_MEMORY);
 
     void* data;
     vkMapMemory(mLogicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
@@ -374,6 +385,8 @@ auto VulkanRenderer::createVertexBuffer() -> void {
 
     VulkanBufferManager::createBuffer(mLogicalDevice, mPhysicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mVertexBuffer,
                                       mVertexBufferMemory);
+    debugUtilsObjectName(reinterpret_cast<uint64_t>(mVertexBuffer), "createVertexBuffer.mVertexBuffer", VK_OBJECT_TYPE_BUFFER);
+    debugUtilsObjectName(reinterpret_cast<uint64_t>(mVertexBufferMemory), "createVertexBuffer.mVertexBufferMemory", VK_OBJECT_TYPE_DEVICE_MEMORY);
 
     VulkanBufferManager::copyBuffer(mLogicalDevice, mCommandPool, mSelectedGraphicsQueue, stagingBuffer, mVertexBuffer, bufferSize);
 
@@ -1259,9 +1272,12 @@ auto VulkanRenderer::createTexture(const std::string& filename, VkFormat format,
     VulkanBufferManager::createBuffer(mLogicalDevice, mPhysicalDevice, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
                                       stagingBufferMemory);
 
+    debugUtilsObjectName(reinterpret_cast<uint64_t>(stagingBuffer), std::format("createTexture({})", filename).c_str(), VK_OBJECT_TYPE_BUFFER);
+    debugUtilsObjectName(reinterpret_cast<uint64_t>(stagingBufferMemory), std::format("createTexture({})", filename).c_str(), VK_OBJECT_TYPE_DEVICE_MEMORY);
+
     void* data;
     vkMapMemory(mLogicalDevice, stagingBufferMemory, 0, imageSize, 0, &data);
-    memcpy(data, pixels, static_cast<size_t>(imageSize));
+    memcpy(data, pixels, imageSize);
     vkUnmapMemory(mLogicalDevice, stagingBufferMemory);
 
     stbi_image_free(pixels);
@@ -1285,6 +1301,7 @@ auto VulkanRenderer::createTexture(const std::string& filename, VkFormat format,
     if (const auto result = vkCreateImage(mLogicalDevice, &imageInfo, nullptr, &image); result != VK_SUCCESS) {
         throw VulkanRuntimeException("Failed to create texture image", result);
     }
+    debugUtilsObjectName(reinterpret_cast<uint64_t>(image), std::format("createTexture({})", filename).c_str(), VK_OBJECT_TYPE_IMAGE);
 
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(mLogicalDevice, image, &memRequirements);
@@ -1304,6 +1321,8 @@ auto VulkanRenderer::createTexture(const std::string& filename, VkFormat format,
 
     vkDestroyBuffer(mLogicalDevice, stagingBuffer, nullptr);
     vkFreeMemory(mLogicalDevice, stagingBufferMemory, nullptr);
+
+    debugUtilsObjectName(reinterpret_cast<uint64_t>(imageMemory), std::format("createTexture({})", filename).c_str(), VK_OBJECT_TYPE_DEVICE_MEMORY);
 
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
