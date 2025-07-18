@@ -13,7 +13,7 @@ namespace adelie::renderer::vulkan {
 
     class ADELIE_API VulkanRenderer {
         public:
-            VulkanRenderer(const std::shared_ptr<core::renderer::WindowInterface>& windowInterface);
+            explicit VulkanRenderer(const std::shared_ptr<core::renderer::WindowInterface>& windowInterface);
 
             ~VulkanRenderer() noexcept;
 
@@ -53,10 +53,33 @@ namespace adelie::renderer::vulkan {
                                                  VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                  const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                                                  void* pUserData) -> VKAPI_ATTR VkBool32;
+
+            auto debugUtilsObjectName(const uint64_t& objectHandle, const char* objectName, const VkObjectType& objectType) -> void;
+
             auto createDebugUtilsMessengerEXT(const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) const -> VkResult;
             auto destroyDebugUtilsMessengerEXT(const VkAllocationCallbacks* pAllocator) const -> void;
+            auto setDebugUtilsObjectNameEXT(const VkDebugUtilsObjectNameInfoEXT* nameInfo) const -> VkResult;
             auto createDescriptorSetLayout() -> void;
             auto createCommandPool() -> void;
+
+            //
+            static auto calculateTangents(std::vector<VulkanVertex>& vertices, const std::vector<uint16_t>& indices) -> void;
+            auto createTexture(const std::string& filename, VkFormat format, VkImage& image, VkDeviceMemory& imageMemory, VkImageView& imageView) -> void;
+            auto transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) -> void;
+            auto copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) -> void;
+            auto createDescriptorPool() -> void;
+            auto createDescriptorSets() -> void;
+            auto createCommandBuffers() -> void;
+            auto createSyncObjects() -> void;
+            auto createTextureSampler() -> void;
+
+            auto createVertexBuffer() -> void;
+            auto createUniformBuffers() -> void;
+            auto createIndexBuffer() -> void;
+            auto drawFrame() -> void;
+            auto recreateSwapChain() -> void;
+            auto cleanupSwapChain() -> void;
+            auto updateUniformBuffer() -> void;
 
             VkInstance mInstance;
             VkSurfaceKHR mSurface;
@@ -76,6 +99,30 @@ namespace adelie::renderer::vulkan {
             std::vector<VkFramebuffer> mSwapChainFramebuffers;
             VkCommandPool mCommandPool;
 
+            VkBuffer mVertexBuffer;
+            VkDeviceMemory mVertexBufferMemory;
+            VkBuffer mIndexBuffer;
+            VkDeviceMemory mIndexBufferMemory;
+            std::vector<VkBuffer> mUniformBuffers;
+            std::vector<VkDeviceMemory> mUniformBuffersMemory;
+
+            VkImage mTextureImage;
+            VkDeviceMemory mTextureImageMemory;
+            VkImageView mTextureImageView;
+            VkSampler mTextureSampler;
+            VkImage mNormalMapImage;
+            VkDeviceMemory mNormalMapImageMemory;
+            VkImageView mNormalMapImageView;
+            VkImage mRoughnessMapImage;
+            VkDeviceMemory mRoughnessMapImageMemory;
+            VkImageView mRoughnessMapImageView;
+            std::vector<VkSemaphore> mImageAvailableSemaphores;
+            std::vector<VkSemaphore> mRenderFinishedSemaphores;
+            std::vector<VkFence> mInFlightFences;
+            std::vector<VkCommandBuffer> mCommandBuffers;
+            VkDescriptorPool mDescriptorPool;
+            std::vector<VkDescriptorSet> mDescriptorSets;
+            uint32_t mCurrentFrame;
             std::shared_ptr<core::renderer::WindowInterface> mWindowInterface;
 
     }; /* class VulkanRenderer */
