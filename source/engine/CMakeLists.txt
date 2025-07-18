@@ -43,6 +43,7 @@ set(ADELIE_SOURCE_EXCEPTION ${ADELIE_SOURCE_EXCEPTION} adelie/exception/VulkanRu
 #
 set(ADELIE_SOURCE_RENDERER_VULKAN ${ADELIE_SOURCE_RENDERER_VULKAN} adelie/renderer/vulkan/VulkanVertex.hxx)
 set(ADELIE_SOURCE_RENDERER_VULKAN ${ADELIE_SOURCE_RENDERER_VULKAN} adelie/renderer/vulkan/VulkanRenderer.hxx adelie/renderer/vulkan/VulkanRenderer.cxx)
+set(ADELIE_SOURCE_RENDERER_VULKAN ${ADELIE_SOURCE_RENDERER_VULKAN} adelie/renderer/vulkan/VulkanBufferManager.hxx adelie/renderer/vulkan/VulkanBufferManager.cxx)
 set(ADELIE_SOURCE_RENDERER_VULKAN ${ADELIE_SOURCE_RENDERER_VULKAN} adelie/renderer/vulkan/VulkanShaderManager.hxx adelie/renderer/vulkan/VulkanShaderManager.cxx)
 set(ADELIE_SOURCE_RENDERER_VULKAN ${ADELIE_SOURCE_RENDERER_VULKAN} adelie/renderer/vulkan/VulkanExtensionManager.hxx adelie/renderer/vulkan/VulkanExtensionManager.cxx)
 
