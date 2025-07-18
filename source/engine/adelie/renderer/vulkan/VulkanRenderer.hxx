@@ -27,6 +27,20 @@ namespace adelie::renderer::vulkan {
 
             auto mainLoop() -> void;
 
+            inline auto getRenderWindow() const -> std::shared_ptr<core::renderer::WindowInterface>;
+
+            inline auto getPhysicalDevice() const -> std::shared_ptr<VkPhysicalDevice>;
+
+            inline auto getLogicalDevice() const -> std::shared_ptr<VkDevice>;
+
+            inline auto getRenderSurface() const -> std::shared_ptr<VkSurfaceKHR>;
+
+            inline auto getPipelineLayout() const -> std::shared_ptr<VkPipelineLayout>;
+
+            inline auto getGraphicsPipeline() const -> std::shared_ptr<VkPipeline>;
+
+            inline auto getRenderPass() const -> std::shared_ptr<VkRenderPass>;
+
         private:
             static auto getQueueFamilies(VkPhysicalDevice device) -> std::vector<VkQueueFamilyProperties>;
 
@@ -82,9 +96,13 @@ namespace adelie::renderer::vulkan {
             auto updateUniformBuffer() -> void;
 
             VkInstance mInstance;
-            VkSurfaceKHR mSurface;
-            VkPhysicalDevice mPhysicalDevice;
-            VkDevice mLogicalDevice;
+            std::shared_ptr<VkSurfaceKHR> mSurface;
+            std::shared_ptr<VkPhysicalDevice> mPhysicalDevice;
+            std::shared_ptr<VkDevice> mLogicalDevice;
+            std::shared_ptr<VkPipelineLayout> mPipelineLayout;
+            std::shared_ptr<VkPipeline> mGraphicsPipeline;
+            std::shared_ptr<VkRenderPass> mRenderPass;
+
             VkQueue mSelectedGraphicsQueue;
             VkSwapchainKHR mSwapChain;
             std::vector<VkImage> mSwapChainImages;
@@ -92,10 +110,9 @@ namespace adelie::renderer::vulkan {
             VkFormat mSwapChainImageFormat;
             VkExtent2D mSwapChainExtent;
             VkDebugUtilsMessengerEXT mDebugMessenger;
-            VkRenderPass mRenderPass;
+
             VkDescriptorSetLayout mDescriptorSetLayout;
-            VkPipelineLayout mPipelineLayout;
-            VkPipeline mGraphicsPipeline;
+
             std::vector<VkFramebuffer> mSwapChainFramebuffers;
             VkCommandPool mCommandPool;
 
