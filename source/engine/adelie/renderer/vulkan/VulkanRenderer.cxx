@@ -440,8 +440,8 @@ void VulkanRenderer::createSurface() {
 #elif defined(ADELIE_PLATFORM_WINDOWS)
     VkWin32SurfaceCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    createInfo.hwnd = reinterpret_cast<HWND>(windowInterface->getNativeWindowHandle());
-    createInfo.hinstance = reinterpret_cast<HINSTANCE>(windowInterface->getNativeDisplayHandle());
+    createInfo.hwnd = reinterpret_cast<HWND>(mWindowInterface->getNativeWindowHandle());
+    createInfo.hinstance = reinterpret_cast<HINSTANCE>(mWindowInterface->getNativeDisplayHandle());
     if (vkCreateWin32SurfaceKHR(mInstance, &createInfo, nullptr, &mSurface) != VK_SUCCESS) {
         throw VulkanRuntimeException("Failed to create Win32 window surface!");
     }
@@ -450,8 +450,8 @@ void VulkanRenderer::createSurface() {
         case WindowType::XCB_API: {
             VkXcbSurfaceCreateInfoKHR createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
-            createInfo.connection = static_cast<xcb_connection_t*>(windowInterface->getNativeDisplayHandle());
-            createInfo.window = static_cast<xcb_window_t>(reinterpret_cast<uintptr_t>(windowInterface->getNativeWindowHandle()));
+            createInfo.connection = static_cast<xcb_connection_t*>(mWindowInterface->getNativeDisplayHandle());
+            createInfo.window = static_cast<xcb_window_t>(reinterpret_cast<uintptr_t>(mWindowInterface->getNativeWindowHandle()));
             if (vkCreateXcbSurfaceKHR(mInstance, &createInfo, nullptr, &mSurface) != VK_SUCCESS) {
                 throw VulkanRuntimeException("Failed to create XCB window surface!");
             }
@@ -459,8 +459,8 @@ void VulkanRenderer::createSurface() {
         case WindowType::WAYLAND_API: {
             VkWaylandSurfaceCreateInfoKHR createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
-            createInfo.display = static_cast<wl_display*>(windowInterface->getNativeDisplayHandle());
-            createInfo.surface = static_cast<wl_surface*>(windowInterface->getNativeWindowHandle());
+            createInfo.display = static_cast<wl_display*>(mWindowInterface->getNativeDisplayHandle());
+            createInfo.surface = static_cast<wl_surface*>(mWindowInterface->getNativeWindowHandle());
             if (const auto createSurfaceResult = vkCreateWaylandSurfaceKHR(mInstance, &createInfo, nullptr, &mSurface); createSurfaceResult != VK_SUCCESS) {
                 throw VulkanRuntimeException("Failed to create Wayland window surface!", createSurfaceResult);
             }
