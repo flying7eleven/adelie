@@ -556,25 +556,24 @@ auto VKAPI_CALL VulkanRenderer::debugCallback(VkDebugUtilsMessageSeverityFlagBit
 
     if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
         if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT) {
-            AdelieLogError("Vulkan API usage validation failed: {}", pCallbackData->pMessageIdName);
+            AdelieLogFatal("Vulkan API usage validation failed: {}", pCallbackData->pMessageIdName);
             if (pCallbackData->objectCount > 0) {
-                AdelieLogError("  Causing objects: {}", pCallbackData->objectCount);
+                AdelieLogFatal("  Causing objects: {}", pCallbackData->objectCount);
                 for (auto i = 0u; i < pCallbackData->objectCount; i++) {
-                    AdelieLogError("    Type: {}", string_VkObjectType(pCallbackData->pObjects[i].objectType));
-                    AdelieLogError("    Handle: 0x{:x}", pCallbackData->pObjects[i].objectHandle);
+                    AdelieLogFatal("    Type: {}", string_VkObjectType(pCallbackData->pObjects[i].objectType));
+                    AdelieLogFatal("    Handle: 0x{:x}", pCallbackData->pObjects[i].objectHandle);
                     if (nullptr != pCallbackData->pObjects[i].pObjectName) {
-                        AdelieLogError("    Name: {}", std::string(pCallbackData->pObjects[i].pObjectName));
+                        AdelieLogFatal("    Name: {}", std::string(pCallbackData->pObjects[i].pObjectName));
                     }
                 }
             }
             if (pCallbackData->cmdBufLabelCount > 0) {
-                AdelieLogError("  Causing command buffer labels: {}", pCallbackData->cmdBufLabelCount);
+                AdelieLogFatal("  Causing command buffer labels: {}", pCallbackData->cmdBufLabelCount);
                 for (auto i = 0u; i < pCallbackData->cmdBufLabelCount; i++) {
-                    AdelieLogError("    Name: {}", std::string(pCallbackData->pCmdBufLabels[i].pLabelName));
+                    AdelieLogFatal("    Name: {}", std::string(pCallbackData->pCmdBufLabels[i].pLabelName));
                 }
             }
         }
-        AdelieLogFatal("Terminating application since the validation layer detected that the application has violated a valid usage condition of the Vulkan specification");
         return VK_TRUE;  // it's serious enough to terminate now, this might be a severe bug
     }
 
