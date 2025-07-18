@@ -22,7 +22,7 @@ namespace adelie::core::renderer {
 
     class WindowFactory {
         public:
-            static ADELIE_API std::unique_ptr<WindowInterface> createWindow();
+            static ADELIE_API std::shared_ptr<WindowInterface> createWindow();
 
             static ADELIE_API auto getWindowType() -> WindowType;
 

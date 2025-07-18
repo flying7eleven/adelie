@@ -12,7 +12,7 @@ namespace adelie::core::renderer {
         public:
             enum class API : unsigned char { None, Vulkan };
 
-            static auto initialize(const std::unique_ptr<WindowInterface>& windowInterface) -> void;
+            static auto initialize(const std::shared_ptr<WindowInterface>& windowInterface) -> void;
 
             static auto getAPI() -> const API& { return sAPI; }
 

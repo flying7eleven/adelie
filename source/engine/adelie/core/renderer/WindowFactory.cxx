@@ -66,33 +66,33 @@ WindowType WindowFactory::detectWindowType() {
 #endif
 }
 
-std::unique_ptr<WindowInterface> WindowFactory::createWindow() {
-    std::unique_ptr<WindowInterface> windowInterface = nullptr;
+std::shared_ptr<WindowInterface> WindowFactory::createWindow() {
+    std::shared_ptr<WindowInterface> windowInterface = nullptr;
     switch (getWindowType()) {
         case WindowType::XCB_API:
 #if defined(ADELIE_PLATFORM_LINUX)
-            windowInterface = std::make_unique<XcbWindow>();
+            windowInterface = std::make_shared<XcbWindow>();
             break;
 #else
             throw RuntimeException("XCB window type not supported on this platform");
 #endif /* defined(ADELIE_PLATFORM_LINUX) */
         case WindowType::WAYLAND_API:
 #if defined(ADELIE_PLATFORM_LINUX)
-            windowInterface = std::make_unique<WaylandWindow>();
+            windowInterface = std::make_shared<WaylandWindow>();
             break;
 #else
             throw RuntimeException("WaylandWindow window type not supported on this platform");
 #endif /* defined(ADELIE_PLATFORM_LINUX) */
         case WindowType::WIN32_API:
 #if defined(ADELIE_PLATFORM_WINDOWS)
-            windowInterface = std::make_unique<Win32Window>();
+            windowInterface = std::make_shared<Win32Window>();
             break;
 #else
             throw RuntimeException("Win32 window type not supported on this platform");
 #endif /* defined(ADELIE_PLATFORM_WINDOWS) */
         case WindowType::COCOA_API:
 #if defined(ADELIE_PLATFORM_MACOS)
-            windowInterface = std::make_unique<CocoaWindow>();
+            windowInterface = std::make_shared<CocoaWindow>();
             break;
 #else
             throw RuntimeException("Cocoa window type not supported on this platform");

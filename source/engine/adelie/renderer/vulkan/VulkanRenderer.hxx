@@ -7,12 +7,13 @@
 
     #include <adelie/adelie.hxx>
     #include <adelie/core/renderer/WindowInterface.hxx>
+    #include <adelie/renderer/vulkan/VulkanVertex.hxx>
 
 namespace adelie::renderer::vulkan {
 
     class ADELIE_API VulkanRenderer {
         public:
-            VulkanRenderer(const std::unique_ptr<core::renderer::WindowInterface>& windowInterface);
+            VulkanRenderer(const std::shared_ptr<core::renderer::WindowInterface>& windowInterface);
 
             ~VulkanRenderer() noexcept;
 
@@ -24,10 +25,12 @@ namespace adelie::renderer::vulkan {
 
             auto operator=(VulkanRenderer&&) -> VulkanRenderer& = delete;
 
+            auto mainLoop() -> void;
+
         private:
             static auto getQueueFamilies(VkPhysicalDevice device) -> std::vector<VkQueueFamilyProperties>;
 
-            auto createSurface(const std::unique_ptr<core::renderer::WindowInterface>& windowInterface) -> void;
+            auto createSurface() -> void;
             auto getSurfaceFormats(VkPhysicalDevice device) const -> std::vector<VkSurfaceFormatKHR>;
             auto getSurfacePresentModes(VkPhysicalDevice device) const -> std::vector<VkPresentModeKHR>;
             auto isDeviceSurfaceSupported(VkPhysicalDevice device, uint32_t queueFamilyIndex) const -> bool;
@@ -36,15 +39,15 @@ namespace adelie::renderer::vulkan {
             auto pickPhysicalDevice() -> void;
             auto createLogicalDevice() -> void;
             auto createImageViews() -> void;
-            auto createSwapChain(const std::unique_ptr<core::renderer::WindowInterface>& windowInterface) -> void;
+            auto createSwapChain() -> void;
             auto createRenderPass() -> void;
             auto createGraphicsPipeline() -> void;
             auto createFramebuffers() -> void;
+            auto chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) -> VkExtent2D;
 
             static auto queueFamilyFlagsToString(const VkQueueFlags& flags) -> std::string;
             static auto chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) -> VkSurfaceFormatKHR;
             static auto chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes) -> VkPresentModeKHR;
-            static auto chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, const std::unique_ptr<core::renderer::WindowInterface>& windowInterface) -> VkExtent2D;
 
             static auto VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                  VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -72,6 +75,8 @@ namespace adelie::renderer::vulkan {
             VkPipeline mGraphicsPipeline;
             std::vector<VkFramebuffer> mSwapChainFramebuffers;
             VkCommandPool mCommandPool;
+
+            std::shared_ptr<core::renderer::WindowInterface> mWindowInterface;
 
     }; /* class VulkanRenderer */
 

@@ -11,7 +11,7 @@ using adelie::renderer::vulkan::VulkanRenderer;
 
 Renderer::API Renderer::sAPI = API::None;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
-auto Renderer::initialize(const std::unique_ptr<WindowInterface>& windowInterface) -> void {
+auto Renderer::initialize(const std::shared_ptr<WindowInterface>& windowInterface) -> void {
     AdelieLogDebug("Start initializing the selected rendering API");
     switch (sAPI) {
         case API::Vulkan:

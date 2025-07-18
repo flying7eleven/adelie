@@ -2,6 +2,7 @@
 
 #include <vulkan/vk_enum_string_helper.h>
 
+#include <adelie/adelie.hxx>
 #include <adelie/core/Assert.hxx>
 #include <adelie/core/renderer/WindowFactory.hxx>
 #include <adelie/exception/RuntimeException.hxx>
@@ -15,6 +16,7 @@
 #include <cstring>
 
 using adelie::core::renderer::WindowFactory;
+using adelie::core::renderer::WindowInterface;
 using adelie::core::renderer::WindowType;
 using adelie::exception::RuntimeException;
 using adelie::exception::VulkanRuntimeException;
@@ -23,7 +25,7 @@ using adelie::renderer::vulkan::VulkanRenderer;
 using adelie::renderer::vulkan::VulkanShaderManager;
 using adelie::renderer::vulkan::VulkanVertex;
 
-VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInterface>& windowInterface) {
+VulkanRenderer::VulkanRenderer(const std::shared_ptr<WindowInterface>& windowInterface) {
     mInstance = VK_NULL_HANDLE;
     mDebugMessenger = VK_NULL_HANDLE;
     mSurface = VK_NULL_HANDLE;
@@ -41,6 +43,8 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
     mGraphicsPipeline = VK_NULL_HANDLE;
     mSwapChainFramebuffers.clear();
     mCommandPool = VK_NULL_HANDLE;
+
+    mWindowInterface = windowInterface;
 
     AdelieLogDebug("Start initializing VulkanRenderer");
 
@@ -105,10 +109,11 @@ VulkanRenderer::VulkanRenderer(const std::unique_ptr<core::renderer::WindowInter
         throw VulkanRuntimeException("failed to set up debug messenger", createDebugUtilsResult);
     }
 
-    createSurface(windowInterface);
+    createSurface();
     pickPhysicalDevice();
     createLogicalDevice();
-    createSwapChain(windowInterface);
+    createSwapChain();
+    createImageViews();
     createRenderPass();
     createDescriptorSetLayout();
     createGraphicsPipeline();
@@ -216,11 +221,102 @@ VulkanRenderer::~VulkanRenderer() noexcept {
     }
 }
 
-void VulkanRenderer::createSurface(const std::unique_ptr<core::renderer::WindowInterface>& windowInterface) {
+auto VulkanRenderer::createIndexBuffer() -> void {
+    VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    VulkanBufferManager::createBuffer(mLogicalDevice, mPhysicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
+                                      stagingBufferMemory);
+
+    void* data;
+    vkMapMemory(mLogicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, indices.data(), (size_t)bufferSize);
+    vkUnmapMemory(mLogicalDevice, stagingBufferMemory);
+
+    VulkanBufferManager::createBuffer(mLogicalDevice, mPhysicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mIndexBuffer,
+                                      mIndexBufferMemory);
+
+    VulkanBufferManager::copyBuffer(mLogicalDevice, mCommandPool, mSelectedGraphicsQueue, stagingBuffer, mIndexBuffer, bufferSize);
+
+    vkDestroyBuffer(mLogicalDevice, stagingBuffer, nullptr);
+    vkFreeMemory(mLogicalDevice, stagingBufferMemory, nullptr);
+}
+
+auto VulkanRenderer::createUniformBuffers() -> void {
+    VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+
+    mUniformBuffers.resize(mSwapChainImages.size());
+    mUniformBuffersMemory.resize(mSwapChainImages.size());
+
+    for (size_t i = 0; i < mSwapChainImages.size(); i++) {
+        VulkanBufferManager::createBuffer(mLogicalDevice, mPhysicalDevice, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                          mUniformBuffers[i], mUniformBuffersMemory[i]);
+    }
+}
+
+auto VulkanRenderer::createVertexBuffer() -> void {
+    VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    VulkanBufferManager::createBuffer(mLogicalDevice, mPhysicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
+                                      stagingBufferMemory);
+
+    void* data;
+    vkMapMemory(mLogicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, vertices.data(), (size_t)bufferSize);
+    vkUnmapMemory(mLogicalDevice, stagingBufferMemory);
+
+    VulkanBufferManager::createBuffer(mLogicalDevice, mPhysicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mVertexBuffer,
+                                      mVertexBufferMemory);
+
+    VulkanBufferManager::copyBuffer(mLogicalDevice, mCommandPool, mSelectedGraphicsQueue, stagingBuffer, mVertexBuffer, bufferSize);
+
+    vkDestroyBuffer(mLogicalDevice, stagingBuffer, nullptr);
+    vkFreeMemory(mLogicalDevice, stagingBufferMemory, nullptr);
+}
+
+auto VulkanRenderer::calculateTangents(std::vector<VulkanVertex>& vertices, const std::vector<uint16_t>& indices) -> void {
+    std::vector tangents(vertices.size(), glm::vec3(0.0f));
+    std::vector bitangents(vertices.size(), glm::vec3(0.0f));
+
+    for (size_t i = 0; i < indices.size(); i += 3) {
+        VulkanVertex& v0 = vertices[indices[i + 0]];
+        VulkanVertex& v1 = vertices[indices[i + 1]];
+        VulkanVertex& v2 = vertices[indices[i + 2]];
+
+        glm::vec3 edge1 = v1.pos - v0.pos;
+        glm::vec3 edge2 = v2.pos - v0.pos;
+
+        glm::vec2 deltaUV1 = v1.texCoord - v0.texCoord;
+        glm::vec2 deltaUV2 = v2.texCoord - v0.texCoord;
+
+        float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+        glm::vec3 tangent;
+        tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+        tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+        tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+        tangents[indices[i + 0]] += tangent;
+        tangents[indices[i + 1]] += tangent;
+        tangents[indices[i + 2]] += tangent;
+    }
+
+    for (size_t i = 0; i < vertices.size(); ++i) {
+        const glm::vec3& n = vertices[i].normal;
+        const glm::vec3& t = tangents[i];
+
+        vertices[i].tangent = glm::normalize(t - n * glm::dot(n, t));
+    }
+}
+
+void VulkanRenderer::createSurface() {
 #if defined(ADELIE_PLATFORM_MACOS)
     VkMacOSSurfaceCreateInfoMVK createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
-    createInfo.pView = windowInterface->getNativeWindowHandle();
+    createInfo.pView = mWindowInterface->getNativeWindowHandle();
     if (const auto createSurfaceResult = vkCreateMacOSSurfaceMVK(mInstance, &createInfo, nullptr, &mSurface); createSurfaceResult != VK_SUCCESS) {
         throw VulkanRuntimeException("Failed to create macOS MoltenVK window surface", createSurfaceResult);
     }
@@ -448,10 +544,11 @@ auto VulkanRenderer::createImageViews() -> void {
         if (const auto createImageViewResult = vkCreateImageView(mLogicalDevice, &createInfo, nullptr, &mSwapChainImageViews[i]); createImageViewResult != VK_SUCCESS) {
             throw VulkanRuntimeException("Failed to create image views", createImageViewResult);
         }
+        debugUtilsObjectName(reinterpret_cast<uint64_t>(mSwapChainImageViews[i]), std::format("mSwapChainImageViews[{}]", i).c_str(), VK_OBJECT_TYPE_IMAGE_VIEW);
     }
 }
 
-auto VulkanRenderer::createSwapChain(const std::unique_ptr<core::renderer::WindowInterface>& windowInterface) -> void {
+auto VulkanRenderer::createSwapChain() -> void {
     VkSurfaceCapabilitiesKHR capabilities;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mPhysicalDevice, mSurface, &capabilities);
 
@@ -467,7 +564,7 @@ auto VulkanRenderer::createSwapChain(const std::unique_ptr<core::renderer::Windo
 
     const auto [format, colorSpace] = chooseSwapSurfaceFormat(formats);
     const auto presentMode = chooseSwapPresentMode(presentModes);
-    const auto extent = chooseSwapExtent(capabilities, windowInterface);
+    const auto extent = chooseSwapExtent(capabilities);
 
     auto imageCount = capabilities.minImageCount + 1;
     if (capabilities.maxImageCount > 0 && imageCount > capabilities.maxImageCount) {
@@ -519,13 +616,13 @@ auto VulkanRenderer::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& 
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-auto VulkanRenderer::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, const std::unique_ptr<core::renderer::WindowInterface>& windowInterface) -> VkExtent2D {
+auto VulkanRenderer::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) -> VkExtent2D {
     if (capabilities.currentExtent.width != UINT32_MAX) {
         return capabilities.currentExtent;
     }
 
     int width, height;
-    windowInterface->getWindowSize(width, height);
+    mWindowInterface->getWindowSize(width, height);
 
     VkExtent2D actualExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 
